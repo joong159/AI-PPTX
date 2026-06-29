@@ -1,0 +1,5 @@
+.env
+.venv/
+__pycache__/
+*.pptx
+!test_output.pptx
