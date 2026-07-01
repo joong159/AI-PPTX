@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%;
+  background: transparent;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.slide-outer { width: 100%; padding-top: 56.25%; position: relative; }
+.slide-canvas {
+  position: absolute; inset: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 6px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+[contenteditable] {
+  outline: none;
+  border: 1.5px solid transparent;
+  border-radius: 3px;
+  cursor: text;
+  transition: border-color 0.12s, background 0.12s;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+[contenteditable]:hover { border-color: rgba(79,70,229,0.5); }
+[contenteditable]:focus { border-color: #4F46E5; background: rgba(79,70,229,0.04); }
+</style>
+</head>
+<body>
+<div class="slide-outer">
+  <div class="slide-canvas" id="canvas"></div>
+</div>
+
+<script>
+/* ── Streamlit postMessage ── */
+function setReady() { send({ type: "streamlit:componentReady", apiVersion: 1 }); }
+function setHeight(h) { send({ type: "streamlit:setFrameHeight", height: h }); }
+function setValue(v) { send({ type: "streamlit:setComponentValue", value: v, dataType: "json" }); }
+function send(msg) { window.parent.postMessage({ ...msg, isStreamlitMessage: true }, "*"); }
+
+window.addEventListener("message", function(e) {
+  if (e.data.type === "streamlit:render") onRender(e.data.args || {});
+});
+
+let G = { slide: null, acc: '#4F46E5', bg: '#F8F9FF', txt: '#1e293b', timer: null, hasRendered: false };
+
+function getW() {
+  /* Use window.innerWidth first — reliable even when iframe height=0 */
+  const w = window.innerWidth || document.documentElement.clientWidth ||
+            document.getElementById('canvas').offsetWidth || 720;
+  return w > 10 ? w : 720;
+}
+
+function scheduleUpdate() {
+  clearTimeout(G.timer);
+  G.timer = setTimeout(pushUpdate, 400);
+}
+
+function pushUpdate() {
+  if (!G.slide) return;
+  const d = JSON.parse(JSON.stringify(G.slide));
+  const get = id => { const el = document.getElementById(id); return el ? el.innerText.replace(/\n/g,' ').trim() : null; };
+
+  if (get('el-title')   !== null) d.title = get('el-title');
+  if (get('el-summary') !== null) d.summary = get('el-summary');
+  if (get('el-sv')      !== null) d.stat_value = get('el-sv');
+  if (get('el-sd')      !== null) d.stat_description = get('el-sd');
+  if (get('el-kw')      !== null) d.key_takeaway = get('el-kw');
+
+  const buls = [...document.querySelectorAll('[id^="el-bul-"]')];
+  if (buls.length) d.bullets = buls.map(e => e.innerText.replace(/\n/g,' ').trim());
+
+  const cts = [...document.querySelectorAll('[id^="el-ct-"]')];
+  const cvs = [...document.querySelectorAll('[id^="el-cv-"]')];
+  if (cts.length && d.cards) d.cards = cts.map((e,i) => ({
+    card_title: e.innerText.replace(/\n/g,' ').trim(),
+    card_content: (cvs[i]||{}).innerText ? cvs[i].innerText.replace(/\n/g,' ').trim() : ''
+  }));
+
+  const tsts = [...document.querySelectorAll('[id^="el-tst-"]')];
+  const tsds = [...document.querySelectorAll('[id^="el-tsd-"]')];
+  if (tsts.length && d.timeline_steps) d.timeline_steps = tsts.map((e,i) => ({
+    step_title: e.innerText.replace(/\n/g,' ').trim(),
+    step_desc: (tsds[i]||{}).innerText ? tsds[i].innerText.replace(/\n/g,' ').trim() : ''
+  }));
+
+  setValue(d);
+}
+
+function ed(el) {
+  el.setAttribute('contenteditable', 'true');
+  el.setAttribute('spellcheck', 'false');
+  el.addEventListener('input', scheduleUpdate);
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pushUpdate(); }
+  });
+  return el;
+}
+
+function render(slide) {
+  G.slide = slide;
+  const W = getW();
+  const { acc, bg, txt } = G;
+  const stype = slide.slide_type || 'title_and_content';
+  const buls  = slide.bullets || [];
+  const kw    = slide.key_takeaway || '';
+
+  const cv = document.getElementById('canvas');
+  cv.style.background = bg;
+  cv.innerHTML = '';
+
+  const u = W / 100;
+
+  function div(style) {
+    const d = document.createElement('div');
+    if (style) Object.assign(d.style, style);
+    return d;
+  }
+  function abs(top, left, right, bottom, extra) {
+    const s = { position:'absolute' };
+    if (top    != null) s.top    = top*u+'px';
+    if (left   != null) s.left   = left*u+'px';
+    if (right  != null) s.right  = right*u+'px';
+    if (bottom != null) s.bottom = bottom*u+'px';
+    return div(Object.assign(s, extra||{}));
+  }
+
+  /* KEY TAKEAWAY bottom bar */
+  if (stype !== 'section_header') {
+    const kwBox = abs(null, 3, 3, 1.5, {
+      background: acc+'18', borderRadius: 0.5*u+'px',
+      padding: `${0.8*u}px ${1.5*u}px`,
+      borderLeft: `${0.3*u}px solid ${acc}`,
+      display:'flex', alignItems:'center', gap: 0.5*u+'px'
+    });
+    const kwIcon = div({ fontSize: 1.4*u+'px', flexShrink:'0', userSelect:'none' });
+    kwIcon.textContent = '💡';
+    const kwEl = ed(div({ fontSize: 1.4*u+'px', color:'#555', flex:'1', minHeight: 1.8*u+'px' }));
+    kwEl.id = 'el-kw';
+    kwEl.textContent = kw || '핵심 메시지';
+    kwBox.append(kwIcon, kwEl);
+    cv.appendChild(kwBox);
+  }
+
+  /* SECTION HEADER */
+  if (stype === 'section_header') {
+    const bg2 = abs(0,0,0,0, {
+      background: acc, display:'flex', flexDirection:'column',
+      alignItems:'center', justifyContent:'center',
+      textAlign:'center', padding: 8*u+'px'
+    });
+    const titleEl = ed(div({ fontSize: 3.5*u+'px', fontWeight:'800', color:'white', lineHeight:'1.3', marginBottom: 2*u+'px' }));
+    titleEl.id = 'el-title'; titleEl.textContent = slide.title || '';
+    const line = div({ width: 8*u+'px', height:'3px', background:'rgba(255,255,255,0.5)', borderRadius:'2px', margin:`${2*u}px auto` });
+    const sumEl = ed(div({ fontSize: 1.8*u+'px', color:'rgba(255,255,255,0.85)' }));
+    sumEl.id = 'el-summary'; sumEl.textContent = slide.summary || '';
+    bg2.append(titleEl, line, sumEl);
+    cv.appendChild(bg2);
+    G.hasRendered = true;
+    return;
+  }
+
+  /* HEADER BAR */
+  const hdr = abs(0,0,0,null, {
+    height: 18*u+'px', background: acc,
+    display:'flex', alignItems:'center', padding:`0 ${5*u}px`
+  });
+  const titleEl = ed(div({ fontSize: 2.2*u+'px', fontWeight:'700', color:'white', flex:'1', overflow:'hidden' }));
+  titleEl.id = 'el-title'; titleEl.textContent = slide.title || '';
+  hdr.appendChild(titleEl);
+  cv.appendChild(hdr);
+
+  /* CONTENT AREA */
+  const contentArea = abs(19, 3, 3, 7, { overflow:'hidden' });
+
+  if (stype === 'big_stat') {
+    const svEl = ed(div({ fontSize: 6*u+'px', fontWeight:'900', color: acc, lineHeight:'1', marginBottom: 0.8*u+'px' }));
+    svEl.id = 'el-sv'; svEl.textContent = slide.stat_value || '0';
+    const sdEl = ed(div({ fontSize: 1.6*u+'px', color:'#888', marginBottom: 2*u+'px' }));
+    sdEl.id = 'el-sd'; sdEl.textContent = slide.stat_description || '';
+    contentArea.append(svEl, sdEl);
+    buls.forEach((b,j) => {
+      const row = div({ display:'flex', gap: 0.8*u+'px', marginBottom: 1*u+'px', alignItems:'flex-start' });
+      const dot = div({ width: Math.max(5,0.5*u)+'px', height: Math.max(5,0.5*u)+'px', borderRadius:'50%', background: acc, flexShrink:'0', marginTop: 0.4*u+'px' });
+      const bEl = ed(div({ fontSize: 1.5*u+'px', color:'#444', lineHeight:'1.4', flex:'1' }));
+      bEl.id = `el-bul-${j}`; bEl.textContent = b;
+      row.append(dot, bEl); contentArea.appendChild(row);
+    });
+
+  } else if (stype === 'three_cards') {
+    contentArea.style.display = 'flex';
+    contentArea.style.gap = 1.5*u+'px';
+    (slide.cards || []).slice(0,3).forEach((c,k) => {
+      const card = div({ flex:'1', background: acc+'12', borderRadius: 0.8*u+'px', padding: 2*u+'px', border:`1px solid ${acc}22` });
+      const ctEl = ed(div({ fontSize: 1.8*u+'px', fontWeight:'700', color: acc, marginBottom: 1*u+'px' }));
+      ctEl.id = `el-ct-${k}`; ctEl.textContent = c.card_title || '';
+      const cvEl = ed(div({ fontSize: 1.4*u+'px', color:'#555', lineHeight:'1.5' }));
+      cvEl.id = `el-cv-${k}`; cvEl.textContent = c.card_content || '';
+      card.append(ctEl, cvEl); contentArea.appendChild(card);
+    });
+
+  } else if (stype === 'timeline') {
+    (slide.timeline_steps || []).slice(0,4).forEach((s,k) => {
+      const row = div({ display:'flex', gap: 1.5*u+'px', marginBottom: 2*u+'px', alignItems:'flex-start' });
+      const dot = div({ width: Math.max(20,3.5*u)+'px', height: Math.max(20,3.5*u)+'px', borderRadius:'50%', background: acc, flexShrink:'0', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize: 1.4*u+'px', fontWeight:'800' });
+      dot.textContent = String(k+1);
+      const wrap = div({ flex:'1' });
+      const tstEl = ed(div({ fontSize: 1.8*u+'px', fontWeight:'700', color: txt }));
+      tstEl.id = `el-tst-${k}`; tstEl.textContent = s.step_title || '';
+      const tsdEl = ed(div({ fontSize: 1.4*u+'px', color:'#888', marginTop: 0.3*u+'px' }));
+      tsdEl.id = `el-tsd-${k}`; tsdEl.textContent = s.step_desc || '';
+      wrap.append(tstEl, tsdEl);
+      row.append(dot, wrap); contentArea.appendChild(row);
+    });
+
+  } else {
+    /* title_and_content / two_column */
+    const isTwo = stype === 'two_column';
+    const half  = isTwo ? Math.ceil(buls.length / 2) : buls.length;
+    const makeBuls = (list, offset, container) => {
+      list.forEach((b, ri) => {
+        const j = offset + ri;
+        const row = div({ display:'flex', gap: 0.8*u+'px', marginBottom: 1.4*u+'px', alignItems:'flex-start' });
+        const dot = div({ width: Math.max(5,0.55*u)+'px', height: Math.max(5,0.55*u)+'px', borderRadius:'50%', background: acc, flexShrink:'0', marginTop: 0.5*u+'px' });
+        const bEl = ed(div({ fontSize: 1.6*u+'px', color:'#444', lineHeight:'1.4', flex:'1' }));
+        bEl.id = `el-bul-${j}`; bEl.textContent = b;
+        row.append(dot, bEl); container.appendChild(row);
+      });
+    };
+    if (isTwo) {
+      contentArea.style.display = 'flex';
+      contentArea.style.gap = 4*u+'px';
+      const col1 = div({ flex:'1' }), col2 = div({ flex:'1' });
+      makeBuls(buls.slice(0, half), 0, col1);
+      makeBuls(buls.slice(half), half, col2);
+      contentArea.append(col1, col2);
+    } else {
+      makeBuls(buls, 0, contentArea);
+    }
+  }
+
+  cv.appendChild(contentArea);
+  G.hasRendered = true;
+}
+
+function doHeightUpdate() {
+  const outer = document.querySelector('.slide-outer');
+  const h = outer ? (outer.offsetHeight || 0) + 24 : 450;
+  setHeight(Math.max(h, 200));
+}
+
+function onRender(args) {
+  if (args.acc) G.acc = args.acc;
+  if (args.bg)  G.bg  = args.bg;
+  if (args.txt) G.txt = args.txt;
+
+  /* Tell Streamlit a height immediately so the iframe becomes visible */
+  setHeight(450);
+
+  if (args.slide) {
+    G.slide = args.slide;
+    G.hasRendered = false;
+    /* Two rAF ticks: first ensures the iframe has been resized by Streamlit,
+       second ensures browser layout is complete inside the iframe */
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        render(args.slide);
+        doHeightUpdate();
+      });
+    });
+  }
+}
+
+/* ResizeObserver: if canvas grows after initial render (e.g. Streamlit rerenders
+   the iframe at a different width), re-render with correct scale */
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => {
+    if (G.slide) {
+      render(G.slide);
+      doHeightUpdate();
+    }
+  });
+  ro.observe(document.getElementById('canvas'));
+}
+
+setReady();
+</script>
+</body>
+</html>

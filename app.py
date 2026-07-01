@@ -4,14 +4,63 @@ import json
 import io
 import uuid
 import streamlit as st
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 import google.generativeai as genai
 from groq import Groq
 from pypdf import PdfReader
 from ppt_compiler import compile_presentation, THEMES, TEMPLATE_STYLES
 from pptx.dml.color import RGBColor
+try:
+    import requests
+    from bs4 import BeautifulSoup
+    _WEB_FETCH_OK = True
+except ImportError:
+    _WEB_FETCH_OK = False
 
 load_dotenv()
+
+
+def extract_pptx_text(file_obj) -> str:
+    """Upload된 .pptx 파일에서 슬라이드 텍스트를 추출합니다."""
+    from pptx import Presentation
+    prs = Presentation(file_obj)
+    parts = []
+    for i, slide in enumerate(prs.slides):
+        texts = []
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                for para in shape.text_frame.paragraphs:
+                    t = para.text.strip()
+                    if t:
+                        texts.append(t)
+        if texts:
+            parts.append(f"[슬라이드 {i+1}]\n" + "\n".join(texts))
+    return "\n\n".join(parts)
+
+
+def fetch_url_text(url: str) -> tuple:
+    """URL에서 텍스트 콘텐츠를 가져옵니다. (text, error) 반환."""
+    if not _WEB_FETCH_OK:
+        return None, "requests / beautifulsoup4 패키지가 필요합니다."
+    try:
+        resp = requests.get(url.strip(), timeout=12,
+                            headers={"User-Agent": "Mozilla/5.0 (compatible; SnapdeckBot/1.0)"})
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'noscript']):
+            tag.decompose()
+        text = soup.get_text(separator='\n', strip=True)
+        # 빈 줄 정리
+        lines = [l for l in text.splitlines() if l.strip()]
+        return '\n'.join(lines[:400]), None  # 약 5000자 상한
+    except Exception as e:
+        return None, str(e)
+
+
+import os as _os
+_COMP_DIR = _os.path.join(_os.path.dirname(__file__), "slide_editor")
+_slide_editor_component = components.declare_component("slide_editor", path=_COMP_DIR)
 
 st.set_page_config(
     page_title="Snapdeck — Build a winning deck in a snap",
@@ -1782,33 +1831,64 @@ elif st.session_state['view'] == 'generator':
 
         st.divider()
         st.markdown("#### 참고 자료 추가 (선택)")
-        st.caption("기획서, 보고서, 원본 텍스트 등을 제공하면 AI가 내용을 분석해 슬라이드에 반영합니다.")
-        fu1, fu2 = st.columns(2)
-        with fu1:
-            up = st.file_uploader("파일 업로드 (.txt, .md, .pdf)", type=["txt","md","pdf"])
+        st.caption("기획서, 보고서, 원본 텍스트, PPTX 파일, 또는 웹 URL을 제공하면 AI가 내용을 분석해 슬라이드에 반영합니다.")
+
+        src_tab1, src_tab2, src_tab3 = st.tabs(["📄 파일 업로드", "🌐 URL 가져오기", "✏️ 직접 입력"])
+
+        with src_tab1:
+            up = st.file_uploader("파일 업로드 (.txt, .md, .pdf, .pptx)", type=["txt","md","pdf","pptx"])
             if up is not None:
-                # 새 파일이 올라왔을 때만 읽기 (버튼 클릭 rerun에서 재읽기 방지)
                 if st.session_state.get('_upload_name') != up.name:
                     try:
-                        if up.name.endswith(".pdf"):
+                        if up.name.lower().endswith(".pdf"):
                             reader = PdfReader(up)
                             text = "\n".join(page.extract_text() or "" for page in reader.pages)
                             st.session_state['source_text'] = text.strip()
+                        elif up.name.lower().endswith(".pptx"):
+                            text = extract_pptx_text(up)
+                            st.session_state['source_text'] = text
                         else:
                             st.session_state['source_text'] = up.read().decode("utf-8")
                         st.session_state['_upload_name'] = up.name
                     except Exception as e:
                         st.error(f"파일 오류: {e}")
                 char_count = len(st.session_state.get('source_text', ''))
-                st.success(f"{up.name} 로드 완료 ({char_count:,}자)")
+                st.success(f"✓ {up.name} 로드 완료 ({char_count:,}자)")
+                if st.session_state.get('source_text'):
+                    with st.expander("추출된 내용 미리보기"):
+                        st.text(st.session_state['source_text'][:800] + ("..." if len(st.session_state.get('source_text','')) > 800 else ""))
             else:
                 st.session_state['_upload_name'] = None
-        with fu2:
+
+        with src_tab2:
+            url_input = st.text_input(
+                "웹 페이지 URL",
+                placeholder="https://example.com/article",
+                key='_url_input',
+            )
+            if st.button("URL 내용 가져오기", key='_fetch_url'):
+                if url_input.strip():
+                    with st.spinner("웹 페이지 분석 중..."):
+                        text, err = fetch_url_text(url_input)
+                    if err:
+                        st.error(f"가져오기 실패: {err}")
+                    else:
+                        st.session_state['source_text'] = text
+                        st.session_state['_url_loaded'] = url_input
+                        st.success(f"✓ {len(text):,}자 추출 완료")
+                        st.rerun()
+            if st.session_state.get('_url_loaded'):
+                st.caption(f"로드됨: {st.session_state['_url_loaded']}")
+                with st.expander("추출된 내용 미리보기"):
+                    txt = st.session_state.get('source_text', '')
+                    st.text(txt[:800] + ("..." if len(txt) > 800 else ""))
+
+        with src_tab3:
             st.text_area(
-                "또는 텍스트 직접 붙여넣기",
+                "텍스트 직접 붙여넣기",
                 key='source_text',
-                placeholder="노션, 메일, PDF 등에서 복사한 내용을 여기에 붙여넣으세요...",
-                height=130,
+                placeholder="노션, 메일, 문서 등에서 복사한 내용을 여기에 붙여넣으세요...",
+                height=150,
             )
 
         st.write("")
@@ -2248,29 +2328,47 @@ elif st.session_state['view'] == 'generator':
                                 f'border-radius:6px;font-size:0.78rem;color:#777;border-left:3px solid {acc};">💡 {kw}</div>')
                     return out
 
+                _LAYOUT_OPTIONS = [
+                    ('title_and_content', 'Content'),
+                    ('section_header',    'Section Header'),
+                    ('big_stat',          'Big Stat'),
+                    ('three_cards',       'Three Cards'),
+                    ('timeline',          'Timeline'),
+                    ('two_column',        'Two Column'),
+                    ('team_grid',         'Team Grid'),
+                ]
+                _LAYOUT_KEYS   = [k for k,_ in _LAYOUT_OPTIONS]
+                _LAYOUT_LABELS = [f"{l}" for _,l in _LAYOUT_OPTIONS]
+
                 for i, slide in enumerate(slides):
                     sid   = slide.get('_id', str(i))
                     stype = slide.get('slide_type', 'title_and_content')
 
-                    orig_buls  = slide.get('bullets', [])
-                    n_bul      = st.session_state.get(f'nbul_{sid}', len(orig_buls) or 3)
-                    orig_cards = slide.get('cards', [])
-                    if len(orig_cards) < 3:
-                        orig_cards += [{'card_title': f'카드 {k+1}', 'card_content': ''} for k in range(3-len(orig_cards))]
-                    orig_ts = slide.get('timeline_steps', [])
-                    if len(orig_ts) < 4:
-                        orig_ts += [{'step_title': f'Phase {k+1}', 'step_desc': ''} for k in range(4-len(orig_ts))]
-                    orig_mem = slide.get('team_members', [])
-
-                    # 슬라이드 라벨 + 삭제
-                    lbl_c, del_c = st.columns([9, 1])
-                    with lbl_c:
+                    # 슬라이드 라벨 + 레이아웃 변경 + 삭제
+                    hd_c, lt_c, del_c = st.columns([3, 5, 1])
+                    with hd_c:
                         st.markdown(
                             f'<div style="font-size:0.6rem;font-weight:700;letter-spacing:0.14em;'
-                            f'color:#c8c8dc;margin-top:18px;margin-bottom:6px;text-transform:uppercase;">'
-                            f'SLIDE {i+1} &middot; {_TYPE_LABEL.get(stype, stype)}</div>',
+                            f'color:#c8c8dc;margin-top:22px;margin-bottom:6px;text-transform:uppercase;">'
+                            f'SLIDE {i+1}</div>',
                             unsafe_allow_html=True
                         )
+                    with lt_c:
+                        cur_idx = _LAYOUT_KEYS.index(stype) if stype in _LAYOUT_KEYS else 0
+                        new_type = st.selectbox(
+                            '레이아웃',
+                            options=_LAYOUT_KEYS,
+                            format_func=lambda k: dict(_LAYOUT_OPTIONS).get(k, k),
+                            index=cur_idx,
+                            key=f'layout_{sid}',
+                            label_visibility='collapsed',
+                        )
+                        if new_type != stype:
+                            slide['slide_type'] = new_type
+                            data['slides'][i] = slide
+                            st.session_state['presentation_data'] = data
+                            trigger_pptx_recompile()
+                            st.rerun()
                     with del_c:
                         if st.button('✕', key=f'del_{sid}', help='삭제'):
                             slides.pop(i)
@@ -2278,106 +2376,24 @@ elif st.session_state['view'] == 'generator':
                             data['slides'] = slides
                             st.session_state['presentation_data'] = data; st.rerun()
 
-                    # ── 항상 편집 가능한 텍스트 인풋 ────────────────────────
-                    # 세션 state에 값이 없으면 slide 원본으로 초기화
-                    if f'tit_{sid}' not in st.session_state:
-                        st.session_state[f'tit_{sid}'] = slide.get('title', '')
-                    if f'kw_{sid}' not in st.session_state:
-                        st.session_state[f'kw_{sid}'] = slide.get('key_takeaway', '')
+                    # ── PPT 캔버스 편집기 (contenteditable) ──────────────
+                    updated = _slide_editor_component(
+                        slide=slide,
+                        acc=_s3_acc,
+                        bg=_s3_bg,
+                        txt=_s3_txt,
+                        key=f'slide_editor_{sid}',
+                    )
+                    if updated and updated != slide:
+                        updated['_id'] = sid
+                        updated['slide_index'] = i + 1
+                        data['slides'][i] = updated
+                        st.session_state['presentation_data'] = data
+                        trigger_pptx_recompile()
 
-                    st.text_input('제목', key=f'tit_{sid}', label_visibility='collapsed', placeholder='슬라이드 제목')
-
-                    if stype == 'section_header':
-                        if f'sum_{sid}' not in st.session_state:
-                            st.session_state[f'sum_{sid}'] = slide.get('summary', '')
-                        st.text_input('부제목', key=f'sum_{sid}', label_visibility='collapsed', placeholder='섹션 부제목')
-
-                    elif stype == 'big_stat':
-                        if f'sv_{sid}' not in st.session_state:
-                            st.session_state[f'sv_{sid}'] = slide.get('stat_value', '')
-                        if f'sd_{sid}' not in st.session_state:
-                            st.session_state[f'sd_{sid}'] = slide.get('stat_description', '')
-                        sc1, sc2 = st.columns([1, 3])
-                        with sc1: st.text_input('수치', key=f'sv_{sid}', placeholder='43%')
-                        with sc2: st.text_input('설명', key=f'sd_{sid}', placeholder='설명')
-                        for j in range(n_bul):
-                            if f'bul{j}_{sid}' not in st.session_state:
-                                st.session_state[f'bul{j}_{sid}'] = orig_buls[j] if j < len(orig_buls) else ''
-                            st.text_input(f'{j+1}.', key=f'bul{j}_{sid}', label_visibility='collapsed', placeholder=f'• 내용 {j+1}')
-
-                    elif stype == 'three_cards':
-                        for k in range(3):
-                            if f'ct_{sid}_{k}' not in st.session_state:
-                                st.session_state[f'ct_{sid}_{k}'] = orig_cards[k].get('card_title','')
-                            if f'cv_{sid}_{k}' not in st.session_state:
-                                st.session_state[f'cv_{sid}_{k}'] = orig_cards[k].get('card_content','')
-                            ck1, ck2 = st.columns([1, 2])
-                            with ck1: st.text_input(f'카드{k+1}제목', key=f'ct_{sid}_{k}', label_visibility='collapsed', placeholder=f'카드 {k+1}')
-                            with ck2: st.text_input(f'카드{k+1}내용', key=f'cv_{sid}_{k}', label_visibility='collapsed', placeholder='내용')
-
-                    elif stype == 'timeline':
-                        for k in range(4):
-                            if f'tst_{sid}_{k}' not in st.session_state:
-                                st.session_state[f'tst_{sid}_{k}'] = orig_ts[k].get('step_title','')
-                            if f'tsd_{sid}_{k}' not in st.session_state:
-                                st.session_state[f'tsd_{sid}_{k}'] = orig_ts[k].get('step_desc','')
-                            tk1, tk2 = st.columns([1, 2])
-                            with tk1: st.text_input(f'단계{k+1}', key=f'tst_{sid}_{k}', label_visibility='collapsed', placeholder=f'단계 {k+1}')
-                            with tk2: st.text_input(f'설명{k+1}', key=f'tsd_{sid}_{k}', label_visibility='collapsed', placeholder='설명')
-
-                    elif stype == 'team_grid':
-                        for k in range(max(len(orig_mem), 2)):
-                            if f'tmn_{sid}_{k}' not in st.session_state:
-                                st.session_state[f'tmn_{sid}_{k}'] = orig_mem[k].get('name','') if k < len(orig_mem) else ''
-                            if f'tmr_{sid}_{k}' not in st.session_state:
-                                st.session_state[f'tmr_{sid}_{k}'] = orig_mem[k].get('role','') if k < len(orig_mem) else ''
-                            mk1, mk2 = st.columns(2)
-                            with mk1: st.text_input(f'이름{k+1}', key=f'tmn_{sid}_{k}', label_visibility='collapsed', placeholder='이름')
-                            with mk2: st.text_input(f'직책{k+1}', key=f'tmr_{sid}_{k}', label_visibility='collapsed', placeholder='직책')
-
-                    else:  # title_and_content, two_column
-                        if stype == 'two_column':
-                            st.caption('왼↔오른 절반씩')
-                        for j in range(n_bul):
-                            if f'bul{j}_{sid}' not in st.session_state:
-                                st.session_state[f'bul{j}_{sid}'] = orig_buls[j] if j < len(orig_buls) else ''
-                            st.text_input(f'{j+1}.', key=f'bul{j}_{sid}', label_visibility='collapsed', placeholder=f'• 내용 {j+1}')
-                        ab_c, rb_c = st.columns(2)
-                        with ab_c:
-                            if st.button('+ 불릿', key=f'addb_{sid}', use_container_width=True):
-                                st.session_state[f'nbul_{sid}'] = n_bul+1; st.rerun()
-                        with rb_c:
-                            if n_bul > 1 and st.button('− 불릿', key=f'remb_{sid}', use_container_width=True):
-                                st.session_state[f'nbul_{sid}'] = n_bul-1; st.rerun()
-
-                    st.text_input('💡 Key Takeaway', key=f'kw_{sid}', label_visibility='collapsed', placeholder='💡 핵심 메시지')
-
-                    # 저장 & 재컴파일
+                    # 저장 & 재컴파일 버튼
                     if st.button('저장 & 재컴파일', key=f'save_{sid}', type='primary', use_container_width=True):
-                        cur_n = st.session_state.get(f'nbul_{sid}', n_bul)
-                        saved_buls = [st.session_state.get(f'bul{j}_{sid}','').strip()
-                                      for j in range(cur_n) if st.session_state.get(f'bul{j}_{sid}','').strip()]
-                        saved = {
-                            '_id': sid, 'slide_index': i+1, 'slide_type': stype,
-                            'title':   st.session_state.get(f'tit_{sid}',''),
-                            'summary': st.session_state.get(f'sum_{sid}',''),
-                            'bullets': saved_buls,
-                            'key_takeaway': st.session_state.get(f'kw_{sid}',''),
-                            'speaker_notes': slide.get('speaker_notes',''),
-                            'stat_value': st.session_state.get(f'sv_{sid}',''),
-                            'stat_description': st.session_state.get(f'sd_{sid}',''),
-                        }
-                        if stype == 'three_cards':
-                            saved['cards'] = [{'card_title': st.session_state.get(f'ct_{sid}_{k}',''),
-                                               'card_content': st.session_state.get(f'cv_{sid}_{k}','')} for k in range(3)]
-                        elif stype == 'timeline':
-                            saved['timeline_steps'] = [{'step_title': st.session_state.get(f'tst_{sid}_{k}',''),
-                                                         'step_desc':  st.session_state.get(f'tsd_{sid}_{k}','')} for k in range(4)]
-                        elif stype == 'team_grid':
-                            saved['team_members'] = [{'name': st.session_state.get(f'tmn_{sid}_{k}',''),
-                                                       'role': st.session_state.get(f'tmr_{sid}_{k}','')}
-                                                      for k in range(max(len(orig_mem),2))]
-                        data['slides'][i] = saved
+                        data['slides'][i] = st.session_state.get(f'slide_editor_{sid}') or slide
                         st.session_state['presentation_data'] = data
                         with st.spinner('재컴파일 중...'): trigger_pptx_recompile()
                         st.rerun()
