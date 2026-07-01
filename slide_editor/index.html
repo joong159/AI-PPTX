@@ -50,7 +50,7 @@ window.addEventListener("message", function(e) {
   if (e.data.type === "streamlit:render") onRender(e.data.args || {});
 });
 
-let G = { slide: null, acc: '#4F46E5', bg: '#F8F9FF', txt: '#1e293b', timer: null, hasRendered: false };
+let G = { slide: null, acc: '#4F46E5', bg: '#F8F9FF', txt: '#1e293b', timer: null, hasRendered: false, pendingSave: false };
 
 function getW() {
   /* Use window.innerWidth first — reliable even when iframe height=0 */
@@ -61,7 +61,7 @@ function getW() {
 
 function scheduleUpdate() {
   clearTimeout(G.timer);
-  G.timer = setTimeout(pushUpdate, 400);
+  G.timer = setTimeout(pushUpdate, 1000);
 }
 
 function pushUpdate() {
@@ -92,6 +92,12 @@ function pushUpdate() {
     step_desc: (tsds[i]||{}).innerText ? tsds[i].innerText.replace(/\n/g,' ').trim() : ''
   }));
 
+  /* pendingSave = true tells onRender to skip the NEXT render event.
+     Streamlit echoes back the OLD data on the rerender that setValue() triggers,
+     which would wipe the user's DOM edits. We skip that one rerender to
+     preserve cursor position. G.slide is NOT updated here — it stays as the
+     last Python-sent snapshot so AI-chat edits can still be detected. */
+  G.pendingSave = true;
   setValue(d);
 }
 
@@ -262,14 +268,24 @@ function onRender(args) {
   if (args.bg)  G.bg  = args.bg;
   if (args.txt) G.txt = args.txt;
 
-  /* Tell Streamlit a height immediately so the iframe becomes visible */
   setHeight(450);
 
   if (args.slide) {
+    /* Case 1: We just called setValue() — Streamlit is echoing old data while
+       session state propagates. Skip to keep the user's DOM edits intact. */
+    if (G.pendingSave) {
+      G.pendingSave = false;
+      return;
+    }
+
+    /* Case 2: Same data as last render (no external change). Skip. */
+    if (G.hasRendered && JSON.stringify(G.slide) === JSON.stringify(args.slide)) {
+      return;
+    }
+
+    /* Case 3: New/external data (AI edit, layout change, initial load). Re-render. */
     G.slide = args.slide;
     G.hasRendered = false;
-    /* Two rAF ticks: first ensures the iframe has been resized by Streamlit,
-       second ensures browser layout is complete inside the iframe */
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         render(args.slide);
@@ -278,6 +294,12 @@ function onRender(args) {
     });
   }
 }
+
+/* Immediate save when iframe loses focus (user clicks outside the slide) */
+window.addEventListener('blur', () => {
+  clearTimeout(G.timer);
+  pushUpdate();
+});
 
 /* ResizeObserver: if canvas grows after initial render (e.g. Streamlit rerenders
    the iframe at a different width), re-render with correct scale */
