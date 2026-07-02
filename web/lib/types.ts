@@ -6,6 +6,7 @@ export type SlideType =
   | 'timeline'
   | 'two_column'
   | 'team_grid'
+  | 'quote_slide'
 
 export interface Card {
   card_title: string

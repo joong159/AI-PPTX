@@ -10,6 +10,7 @@ const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   timeline: '📅 타임라인',
   two_column: '⬛ 2열',
   team_grid: '👥 팀',
+  quote_slide: '💬 인용',
 }
 
 interface Props {
