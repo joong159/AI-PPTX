@@ -7,6 +7,8 @@ export type SlideType =
   | 'two_column'
   | 'team_grid'
   | 'quote_slide'
+  | 'image_text'
+  | 'comparison'
 
 export interface Card {
   card_title: string

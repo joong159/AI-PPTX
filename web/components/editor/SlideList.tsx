@@ -11,6 +11,8 @@ const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   two_column: '⬛ 2열',
   team_grid: '👥 팀',
   quote_slide: '💬 인용',
+  image_text: '🖼 일러스트',
+  comparison: '⚖️ 비교',
 }
 
 interface Props {

@@ -5,6 +5,7 @@ import type { Slide } from '@/lib/types'
 import type { Theme } from '@/lib/themes'
 import type { DesignSettings } from '@/lib/design-settings'
 import { getFontCss, getSizeRatio, applyDesignToTheme } from '@/lib/design-settings'
+import { getIllustrationSvg, pickIllustration } from '@/lib/illustrations'
 
 interface Props {
   slide: Slide
@@ -686,6 +687,121 @@ export default function SlideCanvas({ slide, theme, design, onChange }: Props) {
         row.append(numWrap, wrap)
         contentArea.appendChild(row)
       })
+
+    } else if (stype === 'image_text') {
+      // ── IMAGE + TEXT SPLIT LAYOUT ──
+      contentArea.style.display = 'flex'
+      contentArea.style.gap = 3 * u + 'px'
+      contentArea.style.alignItems = 'stretch'
+
+      // Left: SVG illustration panel
+      const illName = pickIllustration(slide.title || '')
+      const illPanel = div({
+        flex: '0 0 42%',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        background: t.accent + '10',
+        borderRadius: 1.5 * u + 'px',
+        padding: 2 * u + 'px',
+      })
+      const svgStr = getIllustrationSvg(illName, t.accent)
+      illPanel.innerHTML = svgStr
+      const svgEl = illPanel.querySelector('svg')
+      if (svgEl) {
+        svgEl.style.width = '100%'
+        svgEl.style.height = 'auto'
+        svgEl.style.maxHeight = 100 * u + 'px'
+      }
+      // Caption under illustration
+      const caption = ed(div({
+        fontSize: 1.2 * u + 'px', color: t.subtleText, textAlign: 'center',
+        marginTop: 1.5 * u + 'px', fontStyle: 'italic', lineHeight: '1.4',
+      }), 'summary')
+      caption.textContent = slide.summary || illName
+      illPanel.appendChild(caption)
+
+      // Right: text content
+      const textCol = div({ flex: '1', display: 'flex', flexDirection: 'column', justifyContent: 'center' })
+      buls.forEach((b, i) => makeBulletRow(b, i, textCol))
+
+      contentArea.append(illPanel, textCol)
+
+    } else if (stype === 'comparison') {
+      // ── A vs B COMPARISON LAYOUT ──
+      contentArea.style.display = 'flex'
+      contentArea.style.gap = 0 + 'px'
+      contentArea.style.alignItems = 'stretch'
+
+      const cards = slide.cards || [
+        { card_title: '옵션 A', card_content: '' },
+        { card_title: '옵션 B', card_content: '' },
+      ]
+      const leftCard = cards[0] || { card_title: '옵션 A', card_content: '' }
+      const rightCard = cards[1] || { card_title: '옵션 B', card_content: '' }
+
+      const sideStyles = [
+        { bg: t.accent + '15', border: t.accent, headerBg: t.accent, headerText: '#fff' },
+        { bg: t.accent + '08', border: t.accent + '60', headerBg: t.bg, headerText: t.bodyText },
+      ]
+
+      ;[leftCard, rightCard].forEach((card, k) => {
+        const ss = sideStyles[k]
+        const col = div({
+          flex: '1', display: 'flex', flexDirection: 'column',
+          background: ss.bg,
+          borderRadius: 1.5 * u + 'px',
+          border: `2px solid ${ss.border}`,
+          overflow: 'hidden',
+          marginLeft: k === 1 ? 2 * u + 'px' : '0',
+        })
+        // Column header
+        const colHdr = div({
+          background: ss.headerBg, padding: `${1.5 * u}px ${2 * u}px`,
+          display: 'flex', alignItems: 'center', gap: u + 'px',
+        })
+        const badge = div({
+          width: 3 * u + 'px', height: 3 * u + 'px', borderRadius: '50%',
+          background: k === 0 ? '#fff' : t.accent,
+          color: k === 0 ? t.accent : '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 1.3 * u + 'px', fontWeight: '900', flexShrink: '0',
+        })
+        badge.textContent = k === 0 ? 'A' : 'B'
+        const colTitle = ed(div({
+          fontSize: 1.8 * u + 'px', fontWeight: '800', color: ss.headerText, flex: '1',
+        }), `card-title-${k}`)
+        colTitle.setAttribute('data-card-title', '')
+        colTitle.textContent = card.card_title || ''
+        colHdr.append(badge, colTitle)
+        col.appendChild(colHdr)
+
+        // Content area
+        const colBody = div({ padding: `${1.5 * u}px ${2 * u}px`, flex: '1' })
+        const colContent = ed(div({
+          fontSize: 1.4 * u + 'px', color: t.bodyText, lineHeight: '1.7', whiteSpace: 'pre-wrap',
+        }), `card-content-${k}`)
+        colContent.setAttribute('data-card-content', '')
+        colContent.textContent = card.card_content || ''
+        colBody.appendChild(colContent)
+        col.appendChild(colBody)
+        contentArea.appendChild(col)
+      })
+
+      // VS badge in center
+      const vsBadge = div({
+        position: 'absolute',
+        left: '50%', top: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 4 * u + 'px', height: 4 * u + 'px', borderRadius: '50%',
+        background: t.accent, color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 1.3 * u + 'px', fontWeight: '900',
+        boxShadow: `0 0 0 ${0.5 * u}px ${t.bg}, 0 0 0 ${u}px ${t.accent}50`,
+        zIndex: '5', pointerEvents: 'none',
+      })
+      vsBadge.textContent = 'VS'
+      contentArea.style.position = 'relative'
+      contentArea.appendChild(vsBadge)
 
     } else {
       // title_and_content, two_column, team_grid → bullet-based

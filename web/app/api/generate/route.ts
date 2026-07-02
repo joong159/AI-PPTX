@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 
-const SLIDE_TYPES = ['title_and_content', 'section_header', 'big_stat', 'three_cards', 'timeline', 'two_column']
+const SLIDE_TYPES = [
+  'title_and_content', 'section_header', 'big_stat',
+  'three_cards', 'timeline', 'two_column',
+  'quote_slide', 'image_text', 'comparison',
+]
 
 const SYSTEM_PROMPT = `You are an expert presentation designer. Generate a structured JSON presentation.
 
@@ -28,11 +32,17 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
 
 Slide type rules:
 - title_and_content: bullets array required (3-5 items)
-- section_header: only title + summary, no bullets
-- big_stat: stat_value (e.g. "43%"), stat_description, optional bullets
-- three_cards: cards array with {card_title, card_content} (exactly 3)
+- section_header: only title + summary, no bullets needed (use as chapter dividers)
+- big_stat: stat_value (e.g. "43%", "$2.4B", "3x"), stat_description, optional bullets (2-3)
+- three_cards: cards array with {card_title, card_content} (exactly 3 cards)
 - timeline: timeline_steps array with {step_title, step_desc} (3-4 steps)
-- two_column: bullets array (6-8 items, split into 2 columns)
+- two_column: bullets array (6-8 items, split into 2 columns automatically)
+- quote_slide: title is the quote text, summary is the attribution/source (e.g. "— Steve Jobs")
+- image_text: title + summary (illustration caption) + bullets (3-4 items shown on the right side)
+- comparison: cards array with exactly 2 cards {card_title, card_content} for left vs right comparison
+
+Use diverse slide types. Recommended distribution for a 7-slide deck:
+1x section_header, 2x title_and_content, 1x big_stat or three_cards, 1x timeline or comparison, 1x quote_slide or image_text
 
 Make content professional, concise, and impactful.`
 
