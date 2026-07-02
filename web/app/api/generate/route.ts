@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-
 const SLIDE_TYPES = ['title_and_content', 'section_header', 'big_stat', 'three_cards', 'timeline', 'two_column']
 
 const SYSTEM_PROMPT = `You are an expert presentation designer. Generate a structured JSON presentation.
@@ -40,6 +38,7 @@ Make content professional, concise, and impactful.`
 
 export async function POST(req: NextRequest) {
   try {
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
     const { topic, slide_count = 6, language = 'Korean', style = 'professional' } = await req.json()
 
     if (!topic?.trim()) {

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-
 export async function POST(req: NextRequest) {
   try {
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
     const { slide, instruction } = await req.json()
     if (!slide || !instruction) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
 
