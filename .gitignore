@@ -3,3 +3,8 @@
 __pycache__/
 *.pptx
 !test_output.pptx
+
+# Next.js
+web/.next/
+web/.env.local
+web/node_modules/
