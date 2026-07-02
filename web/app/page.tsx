@@ -48,8 +48,11 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <span className="text-xl font-bold" style={{ color: '#4F46E5' }}>SlideAI</span>
           <div className="flex items-center gap-4">
-            <Link href="/auth/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/auth" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
               로그인
+            </Link>
+            <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+              대시보드
             </Link>
             <Link
               href="/editor"
