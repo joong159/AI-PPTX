@@ -33,6 +33,7 @@ export default function EditorPage() {
   const [topic, setTopic] = useState('')
   const [slideCount, setSlideCount] = useState(6)
   const [generating, setGenerating] = useState(false)
+  const [genError, setGenError] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [showGenPanel, setShowGenPanel] = useState(true)
   const [showAiPanel, setShowAiPanel] = useState(false)
@@ -44,6 +45,7 @@ export default function EditorPage() {
   async function generate() {
     if (!topic.trim() || generating) return
     setGenerating(true)
+    setGenError(null)
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -59,9 +61,11 @@ export default function EditorPage() {
         }))
         setActiveIndex(0)
         setShowGenPanel(false)
+      } else {
+        setGenError(data.error || 'AI 생성에 실패했습니다. 다시 시도해주세요.')
       }
-    } catch (err) {
-      console.error(err)
+    } catch {
+      setGenError('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setGenerating(false)
     }
@@ -125,7 +129,7 @@ export default function EditorPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="relative flex flex-col h-screen bg-gray-50">
       {/* Top bar */}
       <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 flex-shrink-0 z-10">
         <div className="flex items-center gap-3">
@@ -200,7 +204,7 @@ export default function EditorPage() {
             <div className="mt-4 flex items-center gap-4">
               <label className="text-sm font-medium text-gray-700">슬라이드 수</label>
               <div className="flex gap-2">
-                {[5, 7, 10].map(n => (
+                {[5, 7, 10, 15].map(n => (
                   <button
                     key={n}
                     onClick={() => setSlideCount(n)}
@@ -214,11 +218,17 @@ export default function EditorPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex gap-3">
+            {genError && (
+              <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">
+                ⚠️ {genError}
+              </div>
+            )}
+
+            <div className="mt-4 flex gap-3">
               <button
                 onClick={generate}
                 disabled={generating || !topic.trim()}
-                className="flex-1 font-semibold text-white py-3 rounded-xl transition-opacity disabled:opacity-50"
+                className="flex-1 font-semibold text-white py-3 rounded-xl transition-opacity disabled:opacity-50 cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, #4F46E5, #818CF8)' }}
               >
                 {generating ? '⏳ 생성 중...' : '✨ 프레젠테이션 생성'}
