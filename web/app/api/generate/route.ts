@@ -89,7 +89,11 @@ Start with a title_and_content or section_header slide.`
 
     return NextResponse.json(data)
   } catch (err) {
-    console.error('Generate error:', err)
-    return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('Generate error:', msg)
+    if (msg.includes('GROQ_API_KEY') || msg.includes('apiKey')) {
+      return NextResponse.json({ error: 'GROQ_API_KEY가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.' }, { status: 500 })
+    }
+    return NextResponse.json({ error: `생성 실패: ${msg}` }, { status: 500 })
   }
 }
