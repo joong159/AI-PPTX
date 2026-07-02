@@ -1415,17 +1415,23 @@ def run_chat_edit(presentation_data, instruction, lang):
 
 
 def trigger_pptx_recompile():
+    from ppt_compiler import compile_from_template
     data = st.session_state.get('presentation_data')
-    if data:
-        buf = io.BytesIO()
+    if not data:
+        return
+    buf = io.BytesIO()
+    tpl_path = st.session_state.get('selected_template')
+    if tpl_path and os.path.isfile(tpl_path):
+        compile_from_template(data, buf, tpl_path)
+    else:
         compile_presentation(
             data, buf,
             theme_name=st.session_state.get('theme'),
             deck_format=st.session_state.get('deck_format', 'Standard (16:9)'),
             template_style=st.session_state.get('template_style', 'Modern')
         )
-        buf.seek(0)
-        st.session_state['compiled_pptx'] = buf.read()
+    buf.seek(0)
+    st.session_state['compiled_pptx'] = buf.read()
 
 
 def render_progress_header():
@@ -1942,6 +1948,52 @@ elif st.session_state['view'] == 'generator':
         # ── 헤더 ─────────────────────────────────────────────────────
         st.markdown("### 슬라이드 스타일 선택")
         st.caption("테마와 덱 비율을 선택하고, 색상을 원하는 대로 조정하세요.")
+        st.divider()
+
+        # ── 템플릿 파일 선택 (Method A) ────────────────────────────
+        from ppt_compiler import list_templates
+        _templates = list_templates()
+        _sel_tpl   = st.session_state.get('selected_template', None)
+
+        st.markdown('<div style="font-size:0.78rem;font-weight:600;color:var(--text2);letter-spacing:0.04em;margin-bottom:8px;">📁 PPT 템플릿 파일 (선택)</div>', unsafe_allow_html=True)
+
+        if _templates:
+            # 선택 없음 + 파일 목록
+            _tpl_options = [('(템플릿 사용 안 함 — 기본 테마 사용)', None)] + _templates
+            _tpl_cols = st.columns(min(len(_tpl_options), 4))
+            for ci, (name, path) in enumerate(_tpl_options):
+                col_idx = ci % 4
+                is_sel  = _sel_tpl == path
+                border  = '#7C3AED' if is_sel else 'rgba(99,102,241,0.15)'
+                bg      = 'linear-gradient(135deg,#7C3AED,#4F46E5)' if is_sel else 'var(--surface)'
+                tc      = '#fff' if is_sel else 'var(--text)'
+                tc2     = 'rgba(255,255,255,0.75)' if is_sel else 'var(--text2)'
+                icon    = '✓' if is_sel else ('🎨' if path else '🚫')
+                short   = name[:22] + '…' if len(name) > 22 else name
+                with _tpl_cols[col_idx]:
+                    st.markdown(f"""
+<div style="border:2px solid {border};border-radius:10px;padding:10px 8px 8px;
+            background:{bg};text-align:center;margin-bottom:4px;min-height:72px;
+            box-shadow:{'0 4px 12px rgba(124,58,237,0.25)' if is_sel else 'none'};">
+  <div style="font-size:1.3rem;margin-bottom:4px;">{icon}</div>
+  <div style="font-size:0.72rem;font-weight:700;color:{tc};line-height:1.3;">{short}</div>
+</div>""", unsafe_allow_html=True)
+                    lbl = '✓ 선택됨' if is_sel else '선택'
+                    if st.button(lbl, key=f'tpl_{ci}', use_container_width=True):
+                        st.session_state['selected_template'] = path
+                        st.rerun()
+            if _sel_tpl:
+                tpl_display = next((n for n,p in _templates if p==_sel_tpl), '')
+                st.success(f'📎 선택된 템플릿: **{tpl_display}** — 다운로드 시 이 파일의 디자인이 적용됩니다.')
+        else:
+            st.info(
+                '`templates/` 폴더에 `.pptx` 파일을 넣으면 여기에 표시됩니다.  \n'
+                '무료 다운로드: [slidescarnival.com](https://slidescarnival.com) · '
+                '[slidesmania.com](https://slidesmania.com) · [slidebazaar.com](https://slidebazaar.com)'
+            )
+            if st.session_state.get('selected_template'):
+                st.session_state['selected_template'] = None
+
         st.divider()
 
         # ── 덱 비율 (상단 pill 행) ─────────────────────────────────

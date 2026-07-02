@@ -1,8 +1,10 @@
 import re
+import os as _os
 from pptx import Presentation
-from pptx.util import Inches, Pt
+from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
+from pptx.oxml.ns import qn as _qn
 from pptx.enum.shapes import MSO_SHAPE
 
 COLOR_WHITE = RGBColor(255, 255, 255)
@@ -834,3 +836,261 @@ def compile_presentation(data, output_filename_or_stream, theme_name=None,
                                     margin_left, takeaway_top, content_width, takeaway_height)
 
     prs.save(output_filename_or_stream)
+
+
+# ══════════════════════════════════════════════════════════════════
+# TEMPLATE-BASED COMPILER  (방법 A)
+# templates/ 폴더의 .pptx 파일을 슬라이드 디자인 베이스로 사용.
+# 슬라이드 마스터·레이아웃의 배경·폰트·장식이 그대로 유지되며
+# AI가 생성한 텍스트(제목, 불릿, 통계 등)가 삽입된다.
+# ══════════════════════════════════════════════════════════════════
+
+TEMPLATES_DIR = _os.path.join(_os.path.dirname(__file__), 'templates')
+
+
+def list_templates():
+    """templates/ 폴더에서 .pptx 파일 목록을 반환. [(표시이름, 경로), ...]"""
+    if not _os.path.isdir(TEMPLATES_DIR):
+        return []
+    results = []
+    for fname in sorted(_os.listdir(TEMPLATES_DIR)):
+        if fname.lower().endswith('.pptx') and not fname.startswith('~$'):
+            display = _os.path.splitext(fname)[0].replace('_', ' ').replace('-', ' ')
+            results.append((display, _os.path.join(TEMPLATES_DIR, fname)))
+    return results
+
+
+def _clear_template_slides(prs):
+    """템플릿의 콘텐츠 슬라이드를 모두 제거 (마스터/레이아웃은 보존)."""
+    sld_id_lst = prs.slides._sldIdLst
+    rIds = [el.get(_qn('r:id')) for el in list(sld_id_lst)]
+    for el in list(sld_id_lst):
+        sld_id_lst.remove(el)
+    for rId in rIds:
+        try:
+            prs.part.drop_rel(rId)
+        except Exception:
+            pass
+
+
+def _find_layout(prs, *keywords):
+    """레이아웃 이름에 키워드가 포함된 첫 번째 레이아웃 반환."""
+    for layout in prs.slide_layouts:
+        name_lower = layout.name.lower()
+        if any(k in name_lower for k in keywords):
+            return layout
+    return None
+
+
+def _ph_fill(slide, idx, text, font_size=None, bold=False, color=None, align=None):
+    """플레이스홀더 idx에 텍스트를 채움. 존재하면 True 반환."""
+    for ph in slide.placeholders:
+        if ph.placeholder_format.idx == idx and ph.has_text_frame:
+            tf = ph.text_frame
+            tf.clear()
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
+            if align:
+                p.alignment = align
+            run = p.add_run()
+            run.text = text
+            if bold:
+                run.font.bold = True
+            if font_size:
+                run.font.size = Pt(font_size)
+            if color:
+                run.font.color.rgb = color
+            return True
+    return False
+
+
+def _txb(slide, left_in, top_in, w_in, h_in, text,
+         size=14, bold=False, color=None, align=PP_ALIGN.LEFT, wrap=True):
+    """슬라이드에 텍스트박스를 추가하고 반환."""
+    box = slide.shapes.add_textbox(Inches(left_in), Inches(top_in), Inches(w_in), Inches(h_in))
+    tf = box.text_frame
+    tf.word_wrap = wrap
+    tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
+    p = tf.paragraphs[0]
+    p.alignment = align
+    run = p.add_run()
+    run.text = text
+    run.font.size = Pt(size)
+    run.font.bold = bold
+    if color:
+        run.font.color.rgb = color
+    return box
+
+
+def _add_bullets_txb(slide, left_in, top_in, w_in, h_in, bullets, size=15, color=None):
+    """불릿 리스트를 텍스트박스로 추가."""
+    if not bullets:
+        return
+    box = slide.shapes.add_textbox(Inches(left_in), Inches(top_in), Inches(w_in), Inches(h_in))
+    tf = box.text_frame
+    tf.word_wrap = True
+    tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
+    first = True
+    for b in bullets:
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        first = False
+        run = p.add_run()
+        run.text = '•  ' + b
+        run.font.size = Pt(size)
+        if color:
+            run.font.color.rgb = color
+        p.space_after = Pt(10)
+
+
+def _populate_template_slide(slide, slide_data, sw_in, sh_in):
+    """
+    템플릿 슬라이드에 AI 콘텐츠 삽입.
+    - 플레이스홀더(idx=0 제목, idx=1 바디)가 있으면 우선 사용
+    - 없으면 텍스트박스로 대체
+    - 키테이크어웨이는 하단 텍스트박스로 항상 추가
+    """
+    stype   = slide_data.get('slide_type', 'title_and_content')
+    title   = slide_data.get('title', '')
+    summary = slide_data.get('summary', '')
+    bullets = slide_data.get('bullets', [])
+    kw      = slide_data.get('key_takeaway', '')
+
+    # 기존 플레이스홀더 텍스트 초기화
+    for ph in slide.placeholders:
+        if ph.has_text_frame:
+            try:
+                ph.text_frame.clear()
+            except Exception:
+                pass
+
+    # ── 제목 ──────────────────────────────────────────────────────────
+    if not _ph_fill(slide, 0, title, font_size=28, bold=True):
+        _txb(slide, 0.5, 0.25, sw_in - 1.0, 1.1, title, size=28, bold=True)
+
+    # ── 콘텐츠 유형별 처리 ─────────────────────────────────────────────
+    content_top  = 1.55
+    content_h    = sh_in - content_top - 0.75
+    content_w    = sw_in - 1.0
+    kw_top       = sh_in - 0.65
+
+    if stype == 'section_header':
+        if not _ph_fill(slide, 1, summary, font_size=20):
+            _txb(slide, 0.5, 1.7, content_w, 1.0, summary, size=20)
+        return  # 섹션 헤더는 키테이크어웨이 없음
+
+    elif stype in ('title_and_content', 'two_column'):
+        if stype == 'two_column' and len(bullets) >= 2:
+            half = len(bullets) // 2
+            col_w = (content_w - 0.3) / 2
+            _add_bullets_txb(slide, 0.5, content_top, col_w, content_h, bullets[:half])
+            _add_bullets_txb(slide, 0.5 + col_w + 0.3, content_top, col_w, content_h, bullets[half:])
+        else:
+            if not _ph_fill(slide, 1, '\n'.join(bullets), font_size=15):
+                _add_bullets_txb(slide, 0.5, content_top, content_w, content_h, bullets)
+
+    elif stype == 'big_stat':
+        stat_v = slide_data.get('stat_value', '')
+        stat_d = slide_data.get('stat_description', '')
+        _txb(slide, 0.5, content_top, content_w * 0.55, 1.6,
+             stat_v, size=72, bold=True, align=PP_ALIGN.LEFT)
+        _txb(slide, 0.5, content_top + 1.55, content_w, 0.5,
+             stat_d, size=16)
+        if bullets:
+            _add_bullets_txb(slide, 0.5, content_top + 2.1, content_w, content_h - 2.1, bullets, size=14)
+
+    elif stype == 'three_cards':
+        cards = slide_data.get('cards', [])[:3]
+        n = len(cards) or 1
+        card_w = (content_w - 0.2 * (n - 1)) / n
+        for k, card in enumerate(cards):
+            left = 0.5 + k * (card_w + 0.2)
+            _txb(slide, left, content_top, card_w, 0.45,
+                 card.get('card_title', ''), size=14, bold=True)
+            _txb(slide, left, content_top + 0.5, card_w, content_h - 0.55,
+                 card.get('card_content', ''), size=12, wrap=True)
+
+    elif stype == 'timeline':
+        steps = slide_data.get('timeline_steps', [])[:4]
+        row_h = min(content_h / max(len(steps), 1), 1.2)
+        for k, step in enumerate(steps):
+            top = content_top + k * row_h
+            _txb(slide, 0.5, top, 0.4, row_h * 0.6,
+                 str(k + 1), size=16, bold=True, align=PP_ALIGN.CENTER)
+            _txb(slide, 1.0, top, content_w - 0.5, row_h * 0.45,
+                 step.get('step_title', ''), size=14, bold=True)
+            _txb(slide, 1.0, top + row_h * 0.44, content_w - 0.5, row_h * 0.5,
+                 step.get('step_desc', ''), size=12)
+
+    elif stype == 'team_grid':
+        members = slide_data.get('team_members', [])[:8]
+        cols = min(4, len(members) or 1)
+        col_w = content_w / cols
+        for k, mem in enumerate(members):
+            col = k % cols
+            row = k // cols
+            left = 0.5 + col * col_w
+            top  = content_top + row * 1.5
+            _txb(slide, left, top, col_w - 0.1, 0.45,
+                 mem.get('name', ''), size=13, bold=True, align=PP_ALIGN.CENTER)
+            _txb(slide, left, top + 0.45, col_w - 0.1, 0.4,
+                 mem.get('role', ''), size=11, align=PP_ALIGN.CENTER)
+
+    # ── 키 테이크어웨이 (하단) ─────────────────────────────────────────
+    if kw:
+        _txb(slide, 0.5, kw_top, content_w, 0.55, f'💡  {kw}', size=11)
+
+
+def compile_from_template(data, output_buf, template_path):
+    """
+    .pptx 템플릿 파일 기반 프레젠테이션 컴파일.
+
+    템플릿의 슬라이드 마스터(배경, 색상, 폰트, 장식)를 보존하면서
+    AI가 생성한 콘텐츠를 각 슬라이드에 삽입한다.
+    """
+    prs = Presentation(template_path)
+    sw_in = prs.slide_width  / 914400
+    sh_in = prs.slide_height / 914400
+
+    # 1. 기존 콘텐츠 슬라이드 제거 (마스터/레이아웃 유지)
+    _clear_template_slides(prs)
+
+    # 2. 레이아웃 선택
+    #    - 제목/섹션용  : "title", "cover", "intro", "divider", "section"
+    #    - 콘텐츠용     : "content", "text", "body"
+    #    - 빈 레이아웃  : "blank"
+    layout_title = (
+        _find_layout(prs, 'title slide', 'cover slide', 'intro', 'title_slide')
+        or _find_layout(prs, 'title')
+        or prs.slide_layouts[0]
+    )
+    layout_section = (
+        _find_layout(prs, 'section', 'divider', 'chapter')
+        or layout_title
+    )
+    layout_content = (
+        _find_layout(prs, 'title and content', 'content', 'text and content')
+        or _find_layout(prs, 'text', 'body')
+        or (prs.slide_layouts[1] if len(prs.slide_layouts) > 1 else prs.slide_layouts[0])
+    )
+    layout_blank = (
+        _find_layout(prs, 'blank')
+        or prs.slide_layouts[-1]
+    )
+
+    # 3. 슬라이드 생성
+    for i, slide_data in enumerate(data.get('slides', [])):
+        stype = slide_data.get('slide_type', 'title_and_content')
+
+        if i == 0:
+            layout = layout_title
+        elif stype == 'section_header':
+            layout = layout_section
+        elif stype in ('three_cards', 'big_stat', 'timeline', 'team_grid'):
+            layout = layout_blank
+        else:
+            layout = layout_content
+
+        slide = prs.slides.add_slide(layout)
+        _populate_template_slide(slide, slide_data, sw_in, sh_in)
+
+    prs.save(output_buf)
