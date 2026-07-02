@@ -4,12 +4,12 @@ import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import type { Presentation, Slide, SlideType } from '@/lib/types'
+import { getTheme, DEFAULT_THEME_ID } from '@/lib/themes'
 
 const SlideCanvas = dynamic(() => import('@/components/editor/SlideCanvas'), { ssr: false })
 const SlideList = dynamic(() => import('@/components/editor/SlideList'), { ssr: false })
 const AiPanel = dynamic(() => import('@/components/editor/AiPanel'), { ssr: false })
-
-const ACCENT_COLORS = ['#4F46E5', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444']
+const ThemePicker = dynamic(() => import('@/components/editor/ThemePicker'), { ssr: false })
 
 const BLANK_SLIDE = (index: number): Slide => ({
   _id: `slide_${Date.now()}_${index}`,
@@ -39,9 +39,10 @@ export default function EditorPage() {
   const [showAiPanel, setShowAiPanel] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [aiRevision, setAiRevision] = useState<Record<string, number>>({})
+  const [themeId, setThemeId] = useState(DEFAULT_THEME_ID)
+  const theme = getTheme(themeId)
 
   const activeSlide = presentation.slides[activeIndex]
-  const accent = presentation.accent_color
 
   async function generate() {
     if (!topic.trim() || generating) return
@@ -152,20 +153,10 @@ export default function EditorPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Accent color picker */}
-          <div className="flex items-center gap-1.5 mr-2">
-            {ACCENT_COLORS.map(c => (
-              <button
-                key={c}
-                onClick={() => setPresentation(prev => ({ ...prev, accent_color: c }))}
-                className="w-5 h-5 rounded-full transition-transform hover:scale-110"
-                style={{
-                  background: c,
-                  outline: accent === c ? `2px solid ${c}` : 'none',
-                  outlineOffset: '2px',
-                }}
-              />
-            ))}
+          {/* Theme picker */}
+          <div className="flex items-center gap-2 mr-2">
+            <span className="text-xs text-gray-400 font-medium">테마</span>
+            <ThemePicker currentId={themeId} onChange={setThemeId} />
           </div>
 
           <button
@@ -256,7 +247,7 @@ export default function EditorPage() {
           <SlideList
             slides={presentation.slides}
             activeIndex={activeIndex}
-            accent={accent}
+            accent={theme.accent}
             onSelect={setActiveIndex}
             onTypeChange={updateSlideType}
             onAddSlide={addSlide}
@@ -292,9 +283,9 @@ export default function EditorPage() {
             <>
               <div className="w-full max-w-4xl">
                 <SlideCanvas
-                  key={activeSlide._id + activeSlide.slide_type + (aiRevision[activeSlide._id] || 0)}
+                  key={activeSlide._id + activeSlide.slide_type + themeId + (aiRevision[activeSlide._id] || 0)}
                   slide={activeSlide}
-                  accent={accent}
+                  theme={theme}
                   onChange={updateSlide}
                 />
               </div>
