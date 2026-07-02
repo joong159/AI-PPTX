@@ -5,11 +5,13 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import type { Presentation, Slide, SlideType } from '@/lib/types'
 import { getTheme, DEFAULT_THEME_ID } from '@/lib/themes'
+import { DEFAULT_DESIGN, type DesignSettings } from '@/lib/design-settings'
 
 const SlideCanvas = dynamic(() => import('@/components/editor/SlideCanvas'), { ssr: false })
 const SlideList = dynamic(() => import('@/components/editor/SlideList'), { ssr: false })
 const AiPanel = dynamic(() => import('@/components/editor/AiPanel'), { ssr: false })
 const ThemePicker = dynamic(() => import('@/components/editor/ThemePicker'), { ssr: false })
+const DesignPanel = dynamic(() => import('@/components/editor/DesignPanel'), { ssr: false })
 
 const BLANK_SLIDE = (index: number): Slide => ({
   _id: `slide_${Date.now()}_${index}`,
@@ -37,9 +39,11 @@ export default function EditorPage() {
   const [exporting, setExporting] = useState(false)
   const [showGenPanel, setShowGenPanel] = useState(true)
   const [showAiPanel, setShowAiPanel] = useState(false)
+  const [showDesignPanel, setShowDesignPanel] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [aiRevision, setAiRevision] = useState<Record<string, number>>({})
   const [themeId, setThemeId] = useState(DEFAULT_THEME_ID)
+  const [design, setDesign] = useState<DesignSettings>(DEFAULT_DESIGN)
   const theme = getTheme(themeId)
 
   const activeSlide = presentation.slides[activeIndex]
@@ -127,7 +131,7 @@ export default function EditorPage() {
     setExporting(true)
     try {
       const { exportPptx } = await import('@/lib/export-pptx')
-      await exportPptx(presentation)
+      await exportPptx(presentation, design)
     } catch (err) {
       console.error('Export error:', err)
     } finally {
@@ -166,10 +170,16 @@ export default function EditorPage() {
             ✨ AI 생성
           </button>
           <button
-            onClick={() => setShowAiPanel(!showAiPanel)}
-            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            onClick={() => { setShowAiPanel(!showAiPanel); setShowDesignPanel(false) }}
+            className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${showAiPanel ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
           >
             💬 AI 편집
+          </button>
+          <button
+            onClick={() => { setShowDesignPanel(!showDesignPanel); setShowAiPanel(false) }}
+            className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${showDesignPanel ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          >
+            🎨 디자인
           </button>
           <button
             onClick={handleExport}
@@ -283,9 +293,10 @@ export default function EditorPage() {
             <>
               <div className="w-full max-w-4xl">
                 <SlideCanvas
-                  key={activeSlide._id + activeSlide.slide_type + themeId + (aiRevision[activeSlide._id] || 0)}
+                  key={activeSlide._id + activeSlide.slide_type + themeId + (aiRevision[activeSlide._id] || 0) + design.paletteId + design.bgColor + design.size + design.font}
                   slide={activeSlide}
                   theme={theme}
+                  design={design}
                   onChange={updateSlide}
                 />
               </div>
@@ -329,6 +340,11 @@ export default function EditorPage() {
           <div className="w-72 flex-shrink-0">
             <AiPanel slide={activeSlide} onUpdateSlide={updateSlideFromAi} />
           </div>
+        )}
+
+        {/* Design panel (right) */}
+        {showDesignPanel && (
+          <DesignPanel design={design} onChange={setDesign} />
         )}
       </div>
     </div>

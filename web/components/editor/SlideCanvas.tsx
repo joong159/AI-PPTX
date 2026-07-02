@@ -3,14 +3,17 @@
 import { useRef, useEffect, useCallback } from 'react'
 import type { Slide } from '@/lib/types'
 import type { Theme } from '@/lib/themes'
+import type { DesignSettings } from '@/lib/design-settings'
+import { getFontCss, getSizeRatio, applyDesignToTheme } from '@/lib/design-settings'
 
 interface Props {
   slide: Slide
   theme: Theme
+  design?: DesignSettings
   onChange: (updated: Slide) => void
 }
 
-export default function SlideCanvas({ slide, theme, onChange }: Props) {
+export default function SlideCanvas({ slide, theme, design, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -71,7 +74,8 @@ export default function SlideCanvas({ slide, theme, onChange }: Props) {
 
     const W = container.offsetWidth || 720
     const u = W / 100
-    const t = theme
+    // Apply design overrides on top of theme
+    const t = design ? applyDesignToTheme(theme, design) : theme
     const stype = slide.slide_type || 'title_and_content'
     const buls = slide.bullets || []
     const kw = slide.key_takeaway || ''
@@ -95,7 +99,8 @@ export default function SlideCanvas({ slide, theme, onChange }: Props) {
     // Canvas wrapper
     container.style.position = 'relative'
     container.style.width = '100%'
-    container.style.paddingTop = '56.25%'
+    container.style.paddingTop = getSizeRatio(design?.size || '16:9') + '%'
+    container.style.fontFamily = getFontCss(design?.font || 'sans')
     const cv = div({
       position: 'absolute', inset: '0', overflow: 'hidden',
       borderRadius: '12px',
@@ -411,7 +416,7 @@ export default function SlideCanvas({ slide, theme, onChange }: Props) {
 
     cv.appendChild(contentArea)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slide._id, slide.slide_type, theme.id])
+  }, [slide._id, slide.slide_type, theme.id, design?.size, design?.font, design?.paletteId, design?.bgColor])
 
   return (
     <div ref={containerRef} className="w-full rounded-xl overflow-hidden"
