@@ -38,6 +38,7 @@ export default function EditorPage() {
   const [showGenPanel, setShowGenPanel] = useState(true)
   const [showAiPanel, setShowAiPanel] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
+  const [aiRevision, setAiRevision] = useState<Record<string, number>>({})
 
   const activeSlide = presentation.slides[activeIndex]
   const accent = presentation.accent_color
@@ -81,6 +82,11 @@ export default function EditorPage() {
     })
     setTimeout(() => setSaveStatus('saved'), 1000)
   }, [])
+
+  const updateSlideFromAi = useCallback((updated: Slide) => {
+    updateSlide(updated)
+    setAiRevision(prev => ({ ...prev, [updated._id]: (prev[updated._id] || 0) + 1 }))
+  }, [updateSlide])
 
   function updateSlideType(index: number, type: SlideType) {
     setPresentation(prev => {
@@ -286,7 +292,7 @@ export default function EditorPage() {
             <>
               <div className="w-full max-w-4xl">
                 <SlideCanvas
-                  key={activeSlide._id + activeSlide.slide_type}
+                  key={activeSlide._id + activeSlide.slide_type + (aiRevision[activeSlide._id] || 0)}
                   slide={activeSlide}
                   accent={accent}
                   onChange={updateSlide}
@@ -330,7 +336,7 @@ export default function EditorPage() {
         {/* AI panel (right) */}
         {showAiPanel && activeSlide && (
           <div className="w-72 flex-shrink-0">
-            <AiPanel slide={activeSlide} onUpdateSlide={updateSlide} />
+            <AiPanel slide={activeSlide} onUpdateSlide={updateSlideFromAi} />
           </div>
         )}
       </div>
