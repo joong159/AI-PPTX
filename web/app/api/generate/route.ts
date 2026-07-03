@@ -22,6 +22,7 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
       "bullets": ["Point 1", "Point 2", "Point 3"],
       "key_takeaway": "One key message",
       "speaker_notes": "Notes for presenter",
+      "image_prompt": "professional business team meeting modern office",
       "stat_value": null,
       "stat_description": null,
       "cards": null,
@@ -40,6 +41,14 @@ Slide type rules:
 - quote_slide: title is the quote text, summary is the attribution/source (e.g. "— Steve Jobs")
 - image_text: title + summary (illustration caption) + bullets (3-4 items shown on the right side)
 - comparison: cards array with exactly 2 cards {card_title, card_content} for left vs right comparison
+
+image_prompt rules:
+- ALWAYS include image_prompt for every slide
+- 5-10 words in English describing ideal background or illustration
+- For section_header: vivid scene (e.g. "futuristic city skyline purple sunset")
+- For image_text: concrete visual (e.g. "scientist analyzing DNA helix laboratory")
+- For others: abstract professional context (e.g. "data visualization charts blue gradient")
+- Style: professional, clean, vector art, flat design
 
 Use diverse slide types. Recommended distribution for a 7-slide deck:
 1x section_header, 2x title_and_content, 1x big_stat or three_cards, 1x timeline or comparison, 1x quote_slide or image_text
@@ -81,21 +90,29 @@ Start with a title_and_content or section_header slide.`
       return NextResponse.json({ error: 'AI returned invalid JSON', raw }, { status: 500 })
     }
 
-    // Normalize slides
-    data.slides = (data.slides || []).map((s: Record<string, unknown>, i: number) => ({
-      _id: `slide_${i + 1}`,
-      slide_index: i,
-      slide_type: s.slide_type || 'title_and_content',
-      title: s.title || '',
-      summary: s.summary || '',
-      bullets: Array.isArray(s.bullets) ? s.bullets : [],
-      key_takeaway: s.key_takeaway || '',
-      speaker_notes: s.speaker_notes || '',
-      stat_value: s.stat_value || null,
-      stat_description: s.stat_description || null,
-      cards: Array.isArray(s.cards) ? s.cards : null,
-      timeline_steps: Array.isArray(s.timeline_steps) ? s.timeline_steps : null,
-    }))
+    // Normalize slides + attach AI image URLs via Pollinations.ai (free, no API key)
+    data.slides = (data.slides || []).map((s: Record<string, unknown>, i: number) => {
+      const imagePrompt = (s.image_prompt as string | undefined)?.trim() || ''
+      const imageUrl = imagePrompt
+        ? `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt + ', professional presentation, flat design, clean')}&width=800&height=500&nologo=true&seed=${i + 1}`
+        : undefined
+      return {
+        _id: `slide_${i + 1}`,
+        slide_index: i,
+        slide_type: s.slide_type || 'title_and_content',
+        title: s.title || '',
+        summary: s.summary || '',
+        bullets: Array.isArray(s.bullets) ? s.bullets : [],
+        key_takeaway: s.key_takeaway || '',
+        speaker_notes: s.speaker_notes || '',
+        image_prompt: imagePrompt || undefined,
+        imageUrl: imageUrl,
+        stat_value: s.stat_value || null,
+        stat_description: s.stat_description || null,
+        cards: Array.isArray(s.cards) ? s.cards : null,
+        timeline_steps: Array.isArray(s.timeline_steps) ? s.timeline_steps : null,
+      }
+    })
 
     return NextResponse.json(data)
   } catch (err) {

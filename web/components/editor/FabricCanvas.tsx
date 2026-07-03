@@ -116,6 +116,31 @@ export default function FabricCanvas({
       fabricRef.current = { canvas, fab }
 
       // ── Load ──────────────────────────────────────────────
+      const insertImageUrl = (url: string) => {
+        FabricImage.fromURL(url, { crossOrigin: 'anonymous' }).then((img: any) => {
+          const placeholder = canvas.getObjects().find((o: any) => o.data?.role === 'img-placeholder')
+          if (placeholder) {
+            // Fit image into placeholder bounds
+            const pw = placeholder.width ?? 500
+            const ph = placeholder.height ?? (CANVAS_H - 128)
+            img.scaleToWidth(pw)
+            if (img.getScaledHeight() > ph) img.scaleToHeight(ph)
+            img.set({ left: placeholder.left ?? 32, top: placeholder.top ?? 108, rx: 8, ry: 8 })
+            canvas.remove(placeholder)
+          } else {
+            img.scaleToWidth(Math.min(500, CANVAS_W / 2))
+            img.set({ left: CANVAS_W / 2 - img.getScaledWidth() / 2, top: CANVAS_H / 2 - img.getScaledHeight() / 2 })
+          }
+          canvas.add(img)
+          canvas.sendObjectToBack(img)
+          // Keep bg behind image
+          const bgObj = canvas.getObjects().find((o: any) => o.data?.role === 'bg')
+          if (bgObj) canvas.sendObjectToBack(bgObj)
+          canvas.renderAll()
+          doSave(canvas)
+        }).catch(() => { /* silent fail if image unavailable */ })
+      }
+
       const load = async () => {
         if (slide.fabricState) {
           await canvas.loadFromJSON(JSON.parse(slide.fabricState))
@@ -124,6 +149,8 @@ export default function FabricCanvas({
           const objs = buildFabricObjects(fab, slide, accentColor, bgColor || '#F8F9FF')
           objs.forEach((o: any) => canvas.add(o))
           canvas.renderAll()
+          // Auto-load AI image if available
+          if (slide.imageUrl) insertImageUrl(slide.imageUrl)
           const json = JSON.stringify(canvas.toJSON(['data']))
           onChange({ ...slide, fabricState: json })
           historyRef.current = [json]

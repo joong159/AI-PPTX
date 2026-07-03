@@ -34,6 +34,8 @@ export interface Slide {
   cards?: Card[]
   timeline_steps?: TimelineStep[]
   fabricState?: string  // JSON from fabric canvas.toJSON()
+  imageUrl?: string     // AI-generated or stock image URL
+  image_prompt?: string // English prompt used to generate imageUrl
 }
 
 export interface Presentation {
