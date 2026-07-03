@@ -1,34 +1,11 @@
 import pptxgen from 'pptxgenjs'
-import type { Presentation, Slide } from './types'
+import type { Presentation } from './types'
 import type { DesignSettings } from './design-settings'
 import { getPalette, DEFAULT_DESIGN } from './design-settings'
-import { buildFabricObjects, CANVAS_W, CANVAS_H } from './slide-to-fabric'
+import { renderSlideToDataUrl } from './render-slide'
 
 const DEFAULT_ACCENT = '#4F46E5'
 const DEFAULT_BG = '#F8F9FF'
-
-// Render a slide off-screen using fabric.StaticCanvas → PNG data URL.
-async function renderSlideToImage(slide: Slide, accent: string, bg: string): Promise<string> {
-  const fab = await import('fabric')
-  const { StaticCanvas } = fab
-
-  const el = document.createElement('canvas')
-  const canvas = new StaticCanvas(el, { width: CANVAS_W, height: CANVAS_H })
-
-  if (slide.fabricState) {
-    await canvas.loadFromJSON(JSON.parse(slide.fabricState))
-    canvas.renderAll()
-  } else {
-    canvas.backgroundColor = bg
-    const objs = buildFabricObjects(fab, slide, accent, bg)
-    objs.forEach((o: any) => canvas.add(o))
-    canvas.renderAll()
-  }
-
-  const dataUrl = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 1 })
-  canvas.dispose()
-  return dataUrl
-}
 
 export async function exportPptx(presentation: Presentation, design?: DesignSettings): Promise<void> {
   const d = design || DEFAULT_DESIGN
@@ -45,24 +22,28 @@ export async function exportPptx(presentation: Presentation, design?: DesignSett
     prs.defineLayout({ name: 'CUSTOM_A4', width: 8.27, height: 11.69 })
     prs.layout = 'CUSTOM_A4'
   } else {
-    prs.layout = 'LAYOUT_WIDE'
+    prs.layout = 'LAYOUT_WIDE'   // 13.33" × 7.5" (16:9)
   }
 
   for (const slide of presentation.slides) {
     const s = prs.addSlide()
     try {
-      const imgData = await renderSlideToImage(slide, accent, bg)
+      // multiplier: 2 gives 2x resolution (2560×1440) for sharper PPTX
+      const imgData = await renderSlideToDataUrl(slide, accent, bg, 2)
       s.addImage({ data: imgData, x: 0, y: 0, w: '100%', h: '100%' })
     } catch (err) {
       console.error('Slide render error:', err)
+      // Fallback: plain slide with title
       s.background = { color: bg.replace('#', '') }
       s.addText(slide.title || '', {
-        x: 0.3, y: 0.1, w: 9.4, h: 0.9,
-        fontSize: 22, bold: true, color: accent.replace('#', ''),
+        x: 0.3, y: 0.3, w: 9.4, h: 0.9,
+        fontSize: 24, bold: true, color: accent.replace('#', ''),
       })
     }
   }
 
-  const filename = (presentation.title || 'presentation').replace(/[^a-zA-Z0-9가-힣\s]/g, '').trim() || 'presentation'
+  const filename = (presentation.title || 'presentation')
+    .replace(/[^a-zA-Z0-9가-힣\s]/g, '')
+    .trim() || 'presentation'
   await prs.writeFile({ fileName: `${filename}.pptx` })
 }

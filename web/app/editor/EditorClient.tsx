@@ -17,6 +17,7 @@ const SlideList = dynamic(() => import('@/components/editor/SlideList'), { ssr: 
 const AiPanel = dynamic(() => import('@/components/editor/AiPanel'), { ssr: false })
 const ThemePicker = dynamic(() => import('@/components/editor/ThemePicker'), { ssr: false })
 const DesignPanel = dynamic(() => import('@/components/editor/DesignPanel'), { ssr: false })
+const PresentationMode = dynamic(() => import('@/components/editor/PresentationMode'), { ssr: false })
 
 const BLANK_SLIDE = (index: number): Slide => ({
   _id: `slide_${Date.now()}_${index}`,
@@ -63,6 +64,7 @@ export default function EditorClient() {
   const [loading, setLoading] = useState(!!presentationId)
   const [activeTool, setActiveTool] = useState<CanvasTool>('select')
   const [selectedObject, setSelectedObject] = useState<any | null>(null)
+  const [showPresentation, setShowPresentation] = useState(false)
 
   const canvasHandleRef = useRef<CanvasHandle | null>(null)
   const canvasInstanceRef = useRef<any | null>(null)
@@ -213,6 +215,15 @@ export default function EditorClient() {
 
   return (
     <div className="relative flex flex-col h-screen bg-gray-50">
+      {showPresentation && (
+        <PresentationMode
+          slides={presentation.slides}
+          accent={accent}
+          bg={bg}
+          startIndex={activeIndex}
+          onClose={() => setShowPresentation(false)}
+        />
+      )}
       {/* Top bar */}
       <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 flex-shrink-0 z-10">
         <div className="flex items-center gap-3">
@@ -251,6 +262,13 @@ export default function EditorClient() {
             className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${showDesignPanel ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
           >
             🎨 디자인
+          </button>
+          <button
+            onClick={() => presentation.slides.length && setShowPresentation(true)}
+            disabled={!presentation.slides.length}
+            className="text-sm font-medium px-4 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-30"
+          >
+            ▶ 발표하기
           </button>
           <button
             onClick={handleExport}
@@ -352,6 +370,12 @@ export default function EditorClient() {
                 onChange={setActiveTool}
                 onUndo={() => canvasHandleRef.current?.undo()}
                 onRedo={() => canvasHandleRef.current?.redo()}
+                onDuplicate={() => canvasHandleRef.current?.duplicate()}
+                onCopy={() => canvasHandleRef.current?.copyObj()}
+                onPaste={() => canvasHandleRef.current?.pasteObj()}
+                onSelectAll={() => canvasHandleRef.current?.selectAll()}
+                onGroup={() => canvasHandleRef.current?.groupSel()}
+                onUngroup={() => canvasHandleRef.current?.ungroupSel()}
                 onImageFile={file => canvasHandleRef.current?.addImage(file)}
               />
 
@@ -414,6 +438,7 @@ export default function EditorClient() {
                 updateSlide(updated)
               }
             }}
+            onDuplicate={() => canvasHandleRef.current?.duplicate()}
           />
         )}
         {rightPanel === 'ai' && activeSlide && (
