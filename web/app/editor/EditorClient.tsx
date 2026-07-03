@@ -31,12 +31,18 @@ export default function EditorClient() {
   const searchParams = useSearchParams()
   const presentationId = searchParams.get('id')
 
-  const [presentation, setPresentation] = useState<Presentation>({
-    title: '새 프레젠테이션',
-    theme: 'modern',
-    accent_color: '#4F46E5',
-    slides: [],
-  })
+  const templateParam = searchParams.get('template')
+
+  function initPresentation(): Presentation {
+    if (templateParam) {
+      try {
+        return JSON.parse(decodeURIComponent(templateParam)) as Presentation
+      } catch { /* fall through */ }
+    }
+    return { title: '새 프레젠테이션', theme: 'modern', accent_color: '#4F46E5', slides: [] }
+  }
+
+  const [presentation, setPresentation] = useState<Presentation>(initPresentation)
   const [dbId, setDbId] = useState<string | null>(presentationId)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -45,12 +51,17 @@ export default function EditorClient() {
   const [generating, setGenerating] = useState(false)
   const [genError, setGenError] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
-  const [showGenPanel, setShowGenPanel] = useState(!presentationId)
+  const [showGenPanel, setShowGenPanel] = useState(!presentationId && !templateParam)
   const [showAiPanel, setShowAiPanel] = useState(false)
   const [showDesignPanel, setShowDesignPanel] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [aiRevision, setAiRevision] = useState<Record<string, number>>({})
-  const [themeId, setThemeId] = useState(DEFAULT_THEME_ID)
+  const [themeId, setThemeId] = useState(() => {
+    if (templateParam) {
+      try { return (JSON.parse(decodeURIComponent(templateParam)) as Presentation).theme || DEFAULT_THEME_ID } catch { /* fall through */ }
+    }
+    return DEFAULT_THEME_ID
+  })
   const [design, setDesign] = useState<DesignSettings>(DEFAULT_DESIGN)
   const [loading, setLoading] = useState(!!presentationId)
 
@@ -275,6 +286,9 @@ export default function EditorClient() {
             <ThemePicker currentId={themeId} onChange={handleThemeChange} />
           </div>
 
+          <Link href="/templates" className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+            📋 템플릿
+          </Link>
           <button
             onClick={() => setShowGenPanel(!showGenPanel)}
             className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
