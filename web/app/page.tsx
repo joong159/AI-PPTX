@@ -162,6 +162,37 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Pricing teaser */}
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-4xl font-black text-gray-900 mb-4">심플한 요금제</h2>
+          <p className="text-gray-500 mb-10">무료로 시작하고, 필요할 때 업그레이드</p>
+          <div className="grid md:grid-cols-2 gap-6 text-left">
+            <div className="bg-white rounded-2xl p-7 border border-gray-200 shadow-sm">
+              <p className="text-gray-500 text-sm mb-1">무료</p>
+              <p className="text-3xl font-black text-gray-900 mb-5">₩0 <span className="text-gray-400 text-base font-normal">/ 월</span></p>
+              <ul className="space-y-2 text-sm text-gray-600">
+                {['프레젠테이션 3개', '슬라이드 최대 7장', 'AI 생성 · PPTX 내보내기'].map(f => (
+                  <li key={f} className="flex items-center gap-2"><span className="text-indigo-500">✓</span>{f}</li>
+                ))}
+              </ul>
+              <Link href="/editor" className="mt-6 block text-center py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">무료로 시작하기</Link>
+            </div>
+            <div className="bg-indigo-600 rounded-2xl p-7 shadow-lg shadow-indigo-200">
+              <p className="text-indigo-200 text-sm mb-1">Pro</p>
+              <p className="text-3xl font-black text-white mb-5">₩9,900 <span className="text-indigo-200 text-base font-normal">/ 월</span></p>
+              <ul className="space-y-2 text-sm text-white">
+                {['프레젠테이션 무제한', '슬라이드 무제한', '공유 링크 · PDF · AI 이미지'].map(f => (
+                  <li key={f} className="flex items-center gap-2"><span className="text-white/60">✓</span>{f}</li>
+                ))}
+              </ul>
+              <Link href="/pricing" className="mt-6 block text-center py-2.5 rounded-xl bg-white text-indigo-700 text-sm font-bold hover:bg-indigo-50 transition-colors">Pro 시작하기</Link>
+            </div>
+          </div>
+          <Link href="/pricing" className="mt-6 inline-block text-sm text-indigo-600 hover:text-indigo-800 font-medium">전체 요금제 보기 →</Link>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-20 px-4" style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}>
         <div className="max-w-2xl mx-auto text-center text-white">
@@ -179,6 +210,11 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-8 px-4 border-t border-gray-100 text-center text-sm text-gray-400">
+        <div className="flex items-center justify-center gap-6 mb-2">
+          <Link href="/pricing" className="hover:text-gray-600 transition-colors">요금제</Link>
+          <Link href="/templates" className="hover:text-gray-600 transition-colors">템플릿</Link>
+          <Link href="/editor" className="hover:text-gray-600 transition-colors">에디터</Link>
+        </div>
         © 2026 SlideAI. All rights reserved.
       </footer>
     </div>

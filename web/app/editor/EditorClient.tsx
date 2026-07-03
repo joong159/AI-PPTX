@@ -69,6 +69,9 @@ export default function EditorClient() {
   const [showPresentation, setShowPresentation] = useState(false)
   const [showImagePanel, setShowImagePanel] = useState(false)
   const [showIconPanel, setShowIconPanel] = useState(false)
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [sharing, setSharing] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const canvasHandleRef = useRef<CanvasHandle | null>(null)
   const canvasInstanceRef = useRef<any | null>(null)
@@ -205,6 +208,27 @@ export default function EditorClient() {
     finally { setExporting(false) }
   }
 
+  async function handleShare() {
+    if (!dbId || !userEmail) return
+    setSharing(true)
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ presentationId: dbId }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        const full = `${window.location.origin}${data.url}`
+        setShareUrl(full)
+        await navigator.clipboard.writeText(full).catch(() => {})
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2500)
+      }
+    } catch { /**/ }
+    finally { setSharing(false) }
+  }
+
   async function handlePdfExport() {
     if (!presentation.slides.length || exporting) return
     setExporting(true)
@@ -307,6 +331,26 @@ export default function EditorClient() {
           >
             🎨 디자인
           </button>
+          {/* Share button (only when logged in and saved) */}
+          {SUPABASE_ENABLED && userEmail && dbId && (
+            <div className="relative">
+              <button onClick={handleShare} disabled={sharing || !presentation.slides.length}
+                className={`text-sm font-medium px-4 py-1.5 rounded-lg border transition-colors disabled:opacity-30 ${copied ? 'border-green-300 text-green-600 bg-green-50' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                {sharing ? '...' : copied ? '✓ 복사됨' : '🔗 공유'}
+              </button>
+              {shareUrl && !copied && (
+                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-50 w-72">
+                  <p className="text-xs text-gray-500 mb-1.5">공유 링크</p>
+                  <div className="flex gap-1.5">
+                    <input readOnly value={shareUrl} className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 truncate" />
+                    <button onClick={() => { navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 2500) }}
+                      className="px-2.5 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700">복사</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             onClick={() => presentation.slides.length && setShowPresentation(true)}
             disabled={!presentation.slides.length}
