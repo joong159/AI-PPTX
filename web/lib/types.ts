@@ -33,6 +33,7 @@ export interface Slide {
   stat_description?: string
   cards?: Card[]
   timeline_steps?: TimelineStep[]
+  fabricState?: string  // JSON from fabric canvas.toJSON()
 }
 
 export interface Presentation {
