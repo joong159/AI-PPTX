@@ -40,6 +40,12 @@ export default function FabricCanvas({
   const activeToolRef = useRef(activeTool)
   activeToolRef.current = activeTool
 
+  // Always-current refs so canvas event handlers never go stale
+  const slideRef = useRef(slide)
+  slideRef.current = slide
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+
   // Resize observer — scale canvas to fit container
   useEffect(() => {
     const el = containerRef.current
@@ -52,15 +58,15 @@ export default function FabricCanvas({
     return () => obs.disconnect()
   }, [])
 
-  // Save state (called after any change)
+  // Save state — uses refs so canvas event handlers always see the latest slide/onChange
   const doSave = useCallback((canvas: any) => {
     const json = JSON.stringify(canvas.toJSON(['data']))
-    onChange({ ...slide, fabricState: json })
+    onChangeRef.current({ ...slideRef.current, fabricState: json })
     const hist = historyRef.current.slice(0, historyIdxRef.current + 1)
     hist.push(json)
-    historyRef.current = hist.slice(-50)  // keep last 50 states
+    historyRef.current = hist.slice(-50)
     historyIdxRef.current = historyRef.current.length - 1
-  }, [slide, onChange])
+  }, [])  // stable — reads via refs
 
   // Initialize / re-initialize fabric canvas when slide changes
   useEffect(() => {
