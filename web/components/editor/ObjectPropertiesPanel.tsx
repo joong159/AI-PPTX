@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { CANVAS_W, CANVAS_H } from '@/lib/slide-to-fabric'
+import { FONTS, loadGoogleFont } from '@/lib/fonts'
 
 interface Props {
   selectedObject: any | null
@@ -22,6 +23,7 @@ export default function ObjectPropertiesPanel({ selectedObject: obj, canvas, onS
   const [textAlign, setTextAlign]   = useState<'left'|'center'|'right'>('left')
   const [textColor, setTextColor]   = useState('#1e293b')
   const [lineHeight, setLineHeight] = useState(1.2)
+  const [fontFamily, setFontFamily] = useState('Arial, sans-serif')
   const [shadowOn, setShadowOn]     = useState(false)
   const [shadowColor, setShadowColor] = useState('#00000066')
   const [shadowBlur, setShadowBlur] = useState(10)
@@ -47,6 +49,7 @@ export default function ObjectPropertiesPanel({ selectedObject: obj, canvas, onS
       setTextAlign(obj.textAlign || 'left')
       setTextColor(typeof obj.fill === 'string' ? obj.fill : '#1e293b')
       setLineHeight(obj.lineHeight || 1.2)
+      setFontFamily(obj.fontFamily || 'Arial, sans-serif')
     }
   }, [obj, isText])
 
@@ -129,6 +132,24 @@ export default function ObjectPropertiesPanel({ selectedObject: obj, canvas, onS
           <section>
             <SLabel>텍스트</SLabel>
             <div className="space-y-2 mt-1">
+              <div>
+                <span className="text-xs text-gray-400 block mb-0.5">폰트</span>
+                <select
+                  value={fontFamily}
+                  onChange={e => {
+                    const font = FONTS.find(f => f.family === e.target.value)
+                    if (font) loadGoogleFont(font)
+                    setFontFamily(e.target.value)
+                    apply({ fontFamily: e.target.value })
+                  }}
+                  className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-indigo-300"
+                  style={{ fontFamily }}
+                >
+                  {FONTS.map(f => (
+                    <option key={f.name} value={f.family}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
               <Row label="색상">
                 <input type="color" value={textColor}
                   onChange={e => { setTextColor(e.target.value); apply({ fill: e.target.value }) }}

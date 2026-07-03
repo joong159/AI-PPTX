@@ -18,6 +18,8 @@ const AiPanel = dynamic(() => import('@/components/editor/AiPanel'), { ssr: fals
 const ThemePicker = dynamic(() => import('@/components/editor/ThemePicker'), { ssr: false })
 const DesignPanel = dynamic(() => import('@/components/editor/DesignPanel'), { ssr: false })
 const PresentationMode = dynamic(() => import('@/components/editor/PresentationMode'), { ssr: false })
+const ImageSearchPanel = dynamic(() => import('@/components/editor/ImageSearchPanel'), { ssr: false })
+const IconPanel = dynamic(() => import('@/components/editor/IconPanel'), { ssr: false })
 
 const BLANK_SLIDE = (index: number): Slide => ({
   _id: `slide_${Date.now()}_${index}`,
@@ -65,6 +67,8 @@ export default function EditorClient() {
   const [activeTool, setActiveTool] = useState<CanvasTool>('select')
   const [selectedObject, setSelectedObject] = useState<any | null>(null)
   const [showPresentation, setShowPresentation] = useState(false)
+  const [showImagePanel, setShowImagePanel] = useState(false)
+  const [showIconPanel, setShowIconPanel] = useState(false)
 
   const canvasHandleRef = useRef<CanvasHandle | null>(null)
   const canvasInstanceRef = useRef<any | null>(null)
@@ -201,6 +205,46 @@ export default function EditorClient() {
     finally { setExporting(false) }
   }
 
+  async function handlePdfExport() {
+    if (!presentation.slides.length || exporting) return
+    setExporting(true)
+    try {
+      const { exportPdf } = await import('@/lib/export-pdf')
+      await exportPdf(presentation, design)
+    } catch (err) { console.error('PDF export error:', err) }
+    finally { setExporting(false) }
+  }
+
+  function insertImageUrl(url: string) {
+    const canvas = canvasHandleRef.current?.getCanvas()
+    if (!canvas) return
+    import('fabric').then(({ FabricImage }) => {
+      FabricImage.fromURL(url, { crossOrigin: 'anonymous' }).then((img: any) => {
+        img.scaleToWidth(Math.min(500, 1280 / 2))
+        img.set({ left: 1280 / 2 - img.getScaledWidth() / 2, top: 720 / 2 - img.getScaledHeight() / 2 })
+        canvas.add(img); canvas.setActiveObject(img); canvas.renderAll()
+        canvasHandleRef.current?.saveState()
+      })
+    })
+  }
+
+  function insertIconSvg(pathData: string, name: string) {
+    const canvas = canvasHandleRef.current?.getCanvas()
+    if (!canvas) return
+    import('fabric').then(({ Path }) => {
+      const path = new Path(pathData, {
+        left: 1280 / 2 - 60,
+        top: 720 / 2 - 60,
+        fill: accent,
+        stroke: 'none',
+        scaleX: 5,
+        scaleY: 5,
+      })
+      canvas.add(path); canvas.setActiveObject(path); canvas.renderAll()
+      canvasHandleRef.current?.saveState()
+    })
+  }
+
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center"><div className="text-3xl mb-3">⏳</div><p className="text-gray-500 text-sm">불러오는 중...</p></div>
@@ -278,6 +322,13 @@ export default function EditorClient() {
           >
             {exporting ? '...' : '📥 PPTX'}
           </button>
+          <button
+            onClick={handlePdfExport}
+            disabled={exporting || !presentation.slides.length}
+            className="text-sm font-medium px-4 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-30"
+          >
+            {exporting ? '...' : '📄 PDF'}
+          </button>
 
           {SUPABASE_ENABLED && (
             userEmail
@@ -336,18 +387,40 @@ export default function EditorClient() {
 
       {/* Main editor */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Slide list */}
-        <div className="w-52 flex-shrink-0">
-          <SlideList
-            slides={presentation.slides}
-            activeIndex={activeIndex}
-            accent={accent}
-            onSelect={i => { setActiveIndex(i); setSelectedObject(null) }}
-            onTypeChange={updateSlideType}
-            onAddSlide={addSlide}
-            onDeleteSlide={deleteSlide}
-            onMoveSlide={moveSlide}
-          />
+        {/* Left: Slide list + Asset panels */}
+        <div className="flex flex-shrink-0">
+          {/* Icon sidebar */}
+          <div className="w-12 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col items-center py-2 gap-1">
+            <SideBtn title="슬라이드" active={!showImagePanel && !showIconPanel} onClick={() => { setShowImagePanel(false); setShowIconPanel(false) }}>☰</SideBtn>
+            <SideBtn title="이미지 검색" active={showImagePanel} onClick={() => { setShowImagePanel(v => !v); setShowIconPanel(false) }}>🖼</SideBtn>
+            <SideBtn title="아이콘" active={showIconPanel} onClick={() => { setShowIconPanel(v => !v); setShowImagePanel(false) }}>⬡</SideBtn>
+          </div>
+
+          {/* Panel content */}
+          {showImagePanel ? (
+            <div className="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden">
+              <div className="px-3 py-2 border-b border-gray-100 text-xs font-semibold text-gray-500">이미지 검색</div>
+              <ImageSearchPanel onInsert={insertImageUrl} />
+            </div>
+          ) : showIconPanel ? (
+            <div className="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden">
+              <div className="px-3 py-2 border-b border-gray-100 text-xs font-semibold text-gray-500">아이콘 라이브러리</div>
+              <IconPanel onInsert={insertIconSvg} />
+            </div>
+          ) : (
+            <div className="w-48 flex-shrink-0">
+              <SlideList
+                slides={presentation.slides}
+                activeIndex={activeIndex}
+                accent={accent}
+                onSelect={i => { setActiveIndex(i); setSelectedObject(null) }}
+                onTypeChange={updateSlideType}
+                onAddSlide={addSlide}
+                onDeleteSlide={deleteSlide}
+                onMoveSlide={moveSlide}
+              />
+            </div>
+          )}
         </div>
 
         {/* Center: Canvas area */}
@@ -451,5 +524,14 @@ export default function EditorClient() {
         )}
       </div>
     </div>
+  )
+}
+
+function SideBtn({ children, active, title, onClick }: { children: React.ReactNode; active: boolean; title: string; onClick: () => void }) {
+  return (
+    <button title={title} onClick={onClick}
+      className={`w-9 h-9 flex items-center justify-center rounded-xl text-base transition-all ${active ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700'}`}>
+      {children}
+    </button>
   )
 }
