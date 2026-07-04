@@ -22,10 +22,15 @@ export interface HtmlTemplate {
   name: string
   category: string
   tags: string[]
+  family: string          // visual mood family, for deck-wide cohesion (see TEMPLATE_FAMILIES)
   thumbnailHtml: string   // Full HTML at 1280×720 with filled demo content
   backgroundHtml: string  // HTML background (no text) for editor overlay
   zones: SlotZone[]       // Where Fabric.js places editable text
 }
+
+// Visual mood groupings so a whole deck can stay in one family instead of
+// mixing e.g. a dark neon template with a soft pastel one.
+export const TEMPLATE_FAMILIES = ['bold-dramatic', 'corporate-clean', 'warm-human', 'luxury-editorial'] as const
 
 // ─── Helper: fill slots with demo data ───────────────────────────────────────
 export function fillSlots(html: string, values: Record<string, string>): string {
@@ -116,8 +121,14 @@ export function autoAssignTemplate(
   slideIndex: number,
   content?: TemplateSelectionContent,
   usedIds?: Set<string>,
+  family?: string,
 ): string {
-  const list = SLIDE_TYPE_TEMPLATES[slideType] ?? SLIDE_TYPE_TEMPLATES.title_and_content
+  const fullList = SLIDE_TYPE_TEMPLATES[slideType] ?? SLIDE_TYPE_TEMPLATES.title_and_content
+  // Prefer templates from the deck's chosen visual family so a whole deck stays
+  // cohesive; fall back to the full candidate list when the family has no
+  // template for this slide_type (e.g. rare types like team_grid).
+  const familyList = family ? fullList.filter(id => HTML_TEMPLATES.find(t => t.id === id)?.family === family) : []
+  const list = familyList.length > 0 ? familyList : fullList
   if (!content) {
     // rotate through list so consecutive same-type slides get different designs
     return list[slideIndex % list.length]
@@ -171,6 +182,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 1. DARK HERO ──────────────────────────────────────────────────────────────
   {
     id: 'dark-hero',
+    family: 'bold-dramatic',
     name: '다크 히어로',
     category: '비즈니스',
     tags: ['dark', '발표', '임팩트'],
@@ -206,6 +218,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 2. GRADIENT SUNSET ────────────────────────────────────────────────────────
   {
     id: 'gradient-sunset',
+    family: 'bold-dramatic',
     name: '선셋 그라디언트',
     category: '마케팅',
     tags: ['gradient', '컬러', '생동감'],
@@ -241,6 +254,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 3. SPLIT BOLD ─────────────────────────────────────────────────────────────
   {
     id: 'split-bold',
+    family: 'corporate-clean',
     name: '볼드 스플릿',
     category: '비즈니스',
     tags: ['split', 'bold', '강렬'],
@@ -273,6 +287,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 4. MINIMAL WHITE ──────────────────────────────────────────────────────────
   {
     id: 'minimal-white',
+    family: 'corporate-clean',
     name: '미니멀 화이트',
     category: '교육',
     tags: ['minimal', 'clean', '여백'],
@@ -303,6 +318,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 5. NEON TECH ──────────────────────────────────────────────────────────────
   {
     id: 'neon-tech',
+    family: 'bold-dramatic',
     name: '네온 테크',
     category: '기술',
     tags: ['neon', 'dark', 'tech', 'startup'],
@@ -341,6 +357,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 6. WARM EARTH ─────────────────────────────────────────────────────────────
   {
     id: 'warm-earth',
+    family: 'warm-human',
     name: '웜 어스',
     category: '교육',
     tags: ['warm', 'earth', '자연', '따뜻한'],
@@ -373,6 +390,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 7. CORPORATE NAVY ─────────────────────────────────────────────────────────
   {
     id: 'corporate-navy',
+    family: 'corporate-clean',
     name: '코퍼레이트 네이비',
     category: '비즈니스',
     tags: ['corporate', '전문', '임원'],
@@ -405,6 +423,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 8. STARTUP BOLD ───────────────────────────────────────────────────────────
   {
     id: 'startup-bold',
+    family: 'bold-dramatic',
     name: '스타트업 볼드',
     category: '스타트업',
     tags: ['startup', 'bold', '강렬', '피치덱'],
@@ -431,6 +450,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 9. EDITORIAL ──────────────────────────────────────────────────────────────
   {
     id: 'editorial',
+    family: 'corporate-clean',
     name: '에디토리얼',
     category: '마케팅',
     tags: ['editorial', 'magazine', '잡지', '고급'],
@@ -468,6 +488,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 10. GLASS MORPHISM ────────────────────────────────────────────────────────
   {
     id: 'glass-morph',
+    family: 'bold-dramatic',
     name: '글래스 모피즘',
     category: '스타트업',
     tags: ['glass', 'modern', '트렌드', '투명'],
@@ -495,6 +516,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 11. RETRO WAVE ────────────────────────────────────────────────────────────
   {
     id: 'retro-wave',
+    family: 'bold-dramatic',
     name: '레트로 웨이브',
     category: '마케팅',
     tags: ['retro', 'vintage', '감성', '레트로'],
@@ -525,6 +547,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 12. DATA REPORT ───────────────────────────────────────────────────────────
   {
     id: 'data-report',
+    family: 'corporate-clean',
     name: '데이터 리포트',
     category: '비즈니스',
     tags: ['data', 'report', '분석', '통계'],
@@ -562,6 +585,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 13. CREATIVE BURST ────────────────────────────────────────────────────────
   {
     id: 'creative-burst',
+    family: 'bold-dramatic',
     name: '크리에이티브 버스트',
     category: '마케팅',
     tags: ['creative', 'colorful', '활기', '에너지'],
@@ -589,6 +613,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 14. ACADEMIC ──────────────────────────────────────────────────────────────
   {
     id: 'academic',
+    family: 'corporate-clean',
     name: '학술 발표',
     category: '교육',
     tags: ['academic', '학술', '논문', '연구'],
@@ -625,6 +650,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 15. PITCH DARK ────────────────────────────────────────────────────────────
   {
     id: 'pitch-dark',
+    family: 'bold-dramatic',
     name: '피치 다크',
     category: '스타트업',
     tags: ['pitch', 'dark', '투자', '스타트업'],
@@ -656,6 +682,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 16. WELLNESS SAGE ─────────────────────────────────────────────────────────
   {
     id: 'wellness-sage',
+    family: 'warm-human',
     name: '웰니스 세이지',
     category: '헬스케어',
     tags: ['wellness', 'health', 'organic', '웰빙'],
@@ -688,6 +715,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 17. TRAVEL POSTCARD ───────────────────────────────────────────────────────
   {
     id: 'travel-postcard',
+    family: 'warm-human',
     name: '트래블 포스트카드',
     category: '여행',
     tags: ['travel', 'postcard', '여행', '감성'],
@@ -717,6 +745,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 18. FOOD MENU ─────────────────────────────────────────────────────────────
   {
     id: 'food-menu',
+    family: 'luxury-editorial',
     name: '푸드 메뉴',
     category: '푸드',
     tags: ['food', 'restaurant', '메뉴', '다이닝'],
@@ -750,6 +779,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 19. WEDDING ELEGANT ───────────────────────────────────────────────────────
   {
     id: 'wedding-elegant',
+    family: 'warm-human',
     name: '웨딩 엘레강스',
     category: '웨딩',
     tags: ['wedding', 'event', '웨딩', '초대장'],
@@ -781,6 +811,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 20. REAL ESTATE LUXURY ────────────────────────────────────────────────────
   {
     id: 'real-estate-luxury',
+    family: 'luxury-editorial',
     name: '리얼에스테이트 럭셔리',
     category: '부동산',
     tags: ['realestate', 'luxury', '부동산', '매물'],
@@ -814,6 +845,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 21. FINANCE GROWTH ────────────────────────────────────────────────────────
   {
     id: 'finance-growth',
+    family: 'corporate-clean',
     name: '파이낸스 그로스',
     category: '금융',
     tags: ['finance', 'growth', '금융', '투자'],
@@ -846,6 +878,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 22. FASHION EDITORIAL B&W ─────────────────────────────────────────────────
   {
     id: 'fashion-editorial-bw',
+    family: 'luxury-editorial',
     name: '패션 에디토리얼',
     category: '패션',
     tags: ['fashion', 'editorial', '패션', '흑백'],
@@ -875,6 +908,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 23. GAMING ARCADE ─────────────────────────────────────────────────────────
   {
     id: 'gaming-arcade',
+    family: 'bold-dramatic',
     name: '게이밍 아케이드',
     category: '게임',
     tags: ['gaming', 'esports', '게임', '네온'],
@@ -908,6 +942,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 24. NONPROFIT IMPACT ──────────────────────────────────────────────────────
   {
     id: 'nonprofit-impact',
+    family: 'warm-human',
     name: '논프로핏 임팩트',
     category: '소셜임팩트',
     tags: ['nonprofit', 'impact', '사회공헌', '기부'],
@@ -940,6 +975,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 25. PORTFOLIO PHOTO ───────────────────────────────────────────────────────
   {
     id: 'portfolio-photo',
+    family: 'luxury-editorial',
     name: '포트폴리오 포토',
     category: '포트폴리오',
     tags: ['portfolio', 'photo', '사진', '작업물'],
@@ -970,6 +1006,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 26. KANBAN PROCESS ────────────────────────────────────────────────────────
   {
     id: 'kanban-process',
+    family: 'corporate-clean',
     name: '칸반 프로세스',
     category: '비즈니스',
     tags: ['process', 'kanban', '프로세스', '워크플로우'],
@@ -1002,6 +1039,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 27. TIMELINE HORIZONTAL ───────────────────────────────────────────────────
   {
     id: 'timeline-horizontal',
+    family: 'corporate-clean',
     name: '호라이즌 타임라인',
     category: '비즈니스',
     tags: ['timeline', '연혁', '로드맵'],
@@ -1030,6 +1068,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 28. COMPARISON VS ─────────────────────────────────────────────────────────
   {
     id: 'comparison-vs',
+    family: 'corporate-clean',
     name: '컴패리즌 VS',
     category: '비즈니스',
     tags: ['comparison', '비교', 'vs'],
@@ -1063,6 +1102,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 29. TEAM GRID CARDS ───────────────────────────────────────────────────────
   {
     id: 'team-grid-cards',
+    family: 'corporate-clean',
     name: '팀 그리드 카드',
     category: '비즈니스',
     tags: ['team', '팀소개', '조직'],
@@ -1089,6 +1129,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   // 30. QUOTE SPOTLIGHT ───────────────────────────────────────────────────────
   {
     id: 'quote-spotlight',
+    family: 'bold-dramatic',
     name: '쿼트 스포트라이트',
     category: '마케팅',
     tags: ['quote', '인용구', '고객후기'],
@@ -1115,6 +1156,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
     id: 'pastel-memphis',
     name: '파스텔 멤피스',
     category: '스타트업',
+    family: 'warm-human',
     tags: ['playful', 'pastel', '멤피스', '발랄'],
     zones: [
       { id: 'TITLE', x: 100, y: 210, w: 820, h: 180, fontSize: 58, color: '#27272a', fontWeight: 'bold', role: 'title' },

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAiClient, AI_MODEL } from '@/lib/ai-client'
 import { extractJson } from '@/lib/refine-shared'
-import { autoAssignTemplate } from '@/lib/html-templates'
+import { autoAssignTemplate, TEMPLATE_FAMILIES } from '@/lib/html-templates'
 
 const SLIDE_TYPES = [
   'title_and_content', 'section_header', 'big_stat',
@@ -14,6 +14,7 @@ const SYSTEM_PROMPT = `You are an expert presentation designer. Generate a struc
 Return ONLY valid JSON in this exact format (no markdown, no explanation):
 {
   "title": "Presentation Title",
+  "deck_style": "bold-dramatic",
   "slides": [
     {
       "_id": "slide_1",
@@ -55,6 +56,12 @@ image_prompt rules:
 Use diverse slide types. Recommended distribution for a 7-slide deck:
 1x section_header, 2x title_and_content, 1x big_stat or three_cards, 1x timeline or comparison, 1x quote_slide or image_text
 
+deck_style: pick exactly ONE visual family for the whole deck, based on the topic, so every slide feels cohesive:
+- "bold-dramatic": dark/neon/high-contrast — tech, startups, pitch decks
+- "corporate-clean": light, structured, professional — business, data, formal reports
+- "warm-human": soft, organic, approachable — education, social good, lifestyle
+- "luxury-editorial": dark+gold or stark black & white, premium — fashion, real estate, high-end brands
+
 Make content professional, concise, and impactful.`
 
 export async function POST(req: NextRequest) {
@@ -88,6 +95,14 @@ Start with a title_and_content or section_header slide.`
       return NextResponse.json({ error: 'AI returned invalid JSON', raw }, { status: 500 })
     }
 
+    // Resolve deck-wide visual family so template selection stays cohesive
+    // across slides; fall back to a random valid family if the AI omitted or
+    // mis-typed it.
+    const deckStyle = TEMPLATE_FAMILIES.includes(data.deck_style)
+      ? data.deck_style
+      : TEMPLATE_FAMILIES[Math.floor(Math.random() * TEMPLATE_FAMILIES.length)]
+    data.deck_style = deckStyle
+
     // Normalize slides + attach AI image URLs via Pollinations.ai (free, no API key)
     const usedTemplateIds = new Set<string>()
     data.slides = (data.slides || []).map((s: Record<string, unknown>, i: number) => {
@@ -97,7 +112,7 @@ Start with a title_and_content or section_header slide.`
         : undefined
       const slideType = (s.slide_type as string) || 'title_and_content'
       const bullets = Array.isArray(s.bullets) ? s.bullets : []
-      const templateId = autoAssignTemplate(slideType, i, { bullets, stat_value: s.stat_value as string | undefined, imageUrl }, usedTemplateIds)
+      const templateId = autoAssignTemplate(slideType, i, { bullets, stat_value: s.stat_value as string | undefined, imageUrl }, usedTemplateIds, deckStyle)
       usedTemplateIds.add(templateId)
       return {
         _id: `slide_${i + 1}`,
