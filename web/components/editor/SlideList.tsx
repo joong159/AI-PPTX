@@ -1,6 +1,7 @@
 'use client'
 
 import type { Slide, SlideType } from '@/lib/types'
+import { HTML_TEMPLATES } from '@/lib/html-templates'
 
 const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   title_and_content: '📄 내용',
@@ -66,31 +67,43 @@ export default function SlideList({ slides, activeIndex, accent, onSelect, onTyp
               className="w-full rounded-md overflow-hidden"
               style={{ paddingTop: '56.25%', position: 'relative', background: '#F8F9FF' }}
             >
-              <div
-                className="absolute inset-0 flex flex-col"
-                style={{ background: slide.slide_type === 'section_header' ? accent : '#F8F9FF' }}
-              >
-                <div
-                  className="px-2 py-1 text-white text-xs font-semibold truncate"
-                  style={{
-                    background: slide.slide_type === 'section_header' ? 'transparent' : accent,
-                    fontSize: '8px',
-                  }}
-                >
-                  {slide.title}
-                </div>
-                <div className="p-1.5 space-y-1">
-                  {(slide.bullets || []).slice(0, 3).map((b, j) => (
-                    <div key={j} className="flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: accent + '88' }} />
-                      <div className="text-gray-400 truncate" style={{ fontSize: '6px' }}>{b}</div>
+              {(() => {
+                const tpl = slide.templateId ? HTML_TEMPLATES.find(t => t.id === slide.templateId) : null
+                if (tpl) {
+                  return (
+                    <div className="absolute inset-0 overflow-hidden">
+                      <div
+                        style={{ width: 1280, height: 720, transform: 'scale(0.119)', transformOrigin: 'top left', pointerEvents: 'none' }}
+                        dangerouslySetInnerHTML={{ __html: tpl.thumbnailHtml }}
+                      />
                     </div>
-                  ))}
-                  {slide.slide_type === 'big_stat' && (
-                    <div style={{ fontSize: '12px', fontWeight: 900, color: accent }}>{slide.stat_value}</div>
-                  )}
-                </div>
-              </div>
+                  )
+                }
+                return (
+                  <div
+                    className="absolute inset-0 flex flex-col"
+                    style={{ background: slide.slide_type === 'section_header' ? accent : '#F8F9FF' }}
+                  >
+                    <div
+                      className="px-2 py-1 text-white text-xs font-semibold truncate"
+                      style={{ background: slide.slide_type === 'section_header' ? 'transparent' : accent, fontSize: '8px' }}
+                    >
+                      {slide.title}
+                    </div>
+                    <div className="p-1.5 space-y-1">
+                      {(slide.bullets || []).slice(0, 3).map((b, j) => (
+                        <div key={j} className="flex items-center gap-1">
+                          <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: accent + '88' }} />
+                          <div className="text-gray-400 truncate" style={{ fontSize: '6px' }}>{b}</div>
+                        </div>
+                      ))}
+                      {slide.slide_type === 'big_stat' && (
+                        <div style={{ fontSize: '12px', fontWeight: 900, color: accent }}>{slide.stat_value}</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Hover actions */}

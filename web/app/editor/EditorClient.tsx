@@ -20,6 +20,7 @@ const DesignPanel = dynamic(() => import('@/components/editor/DesignPanel'), { s
 const PresentationMode = dynamic(() => import('@/components/editor/PresentationMode'), { ssr: false })
 const ImageSearchPanel = dynamic(() => import('@/components/editor/ImageSearchPanel'), { ssr: false })
 const IconPanel = dynamic(() => import('@/components/editor/IconPanel'), { ssr: false })
+const TemplatePicker = dynamic(() => import('@/components/editor/TemplatePicker'), { ssr: false })
 
 const BLANK_SLIDE = (index: number): Slide => ({
   _id: `slide_${Date.now()}_${index}`,
@@ -40,7 +41,7 @@ export default function EditorClient() {
 
   function initPresentation(): Presentation {
     if (templateParam) {
-      try { return JSON.parse(decodeURIComponent(templateParam)) as Presentation } catch { /**/ }
+      try { return JSON.parse(templateParam) as Presentation } catch { /**/ }
     }
     return { title: '새 프레젠테이션', theme: 'modern', accent_color: '#4F46E5', slides: [] }
   }
@@ -59,7 +60,7 @@ export default function EditorClient() {
   const [showDesignPanel, setShowDesignPanel] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [themeId, setThemeId] = useState(() => {
-    if (templateParam) { try { return (JSON.parse(decodeURIComponent(templateParam)) as Presentation).theme || DEFAULT_THEME_ID } catch { /**/ } }
+    if (templateParam) { try { return (JSON.parse(templateParam) as Presentation).theme || DEFAULT_THEME_ID } catch { /**/ } }
     return DEFAULT_THEME_ID
   })
   const [design, setDesign] = useState<DesignSettings>(DEFAULT_DESIGN)
@@ -69,6 +70,7 @@ export default function EditorClient() {
   const [showPresentation, setShowPresentation] = useState(false)
   const [showImagePanel, setShowImagePanel] = useState(false)
   const [showIconPanel, setShowIconPanel] = useState(false)
+  const [showTemplatePanel, setShowTemplatePanel] = useState(false)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [sharing, setSharing] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -237,6 +239,16 @@ export default function EditorClient() {
       await exportPdf(presentation, design)
     } catch (err) { console.error('PDF export error:', err) }
     finally { setExporting(false) }
+  }
+
+  function applyHtmlTemplate(templateId: string) {
+    if (!activeSlide) return
+    updateSlide({ ...activeSlide, templateId, fabricState: undefined })
+  }
+
+  function clearHtmlTemplate() {
+    if (!activeSlide) return
+    updateSlide({ ...activeSlide, templateId: undefined, fabricState: undefined })
   }
 
   function insertImageUrl(url: string) {
@@ -435,13 +447,23 @@ export default function EditorClient() {
         <div className="flex flex-shrink-0">
           {/* Icon sidebar */}
           <div className="w-12 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col items-center py-2 gap-1">
-            <SideBtn title="슬라이드" active={!showImagePanel && !showIconPanel} onClick={() => { setShowImagePanel(false); setShowIconPanel(false) }}>☰</SideBtn>
-            <SideBtn title="이미지 검색" active={showImagePanel} onClick={() => { setShowImagePanel(v => !v); setShowIconPanel(false) }}>🖼</SideBtn>
-            <SideBtn title="아이콘" active={showIconPanel} onClick={() => { setShowIconPanel(v => !v); setShowImagePanel(false) }}>⬡</SideBtn>
+            <SideBtn title="슬라이드" active={!showImagePanel && !showIconPanel && !showTemplatePanel} onClick={() => { setShowImagePanel(false); setShowIconPanel(false); setShowTemplatePanel(false) }}>☰</SideBtn>
+            <SideBtn title="디자인 템플릿" active={showTemplatePanel} onClick={() => { setShowTemplatePanel(v => !v); setShowImagePanel(false); setShowIconPanel(false) }}>✦</SideBtn>
+            <SideBtn title="이미지 검색" active={showImagePanel} onClick={() => { setShowImagePanel(v => !v); setShowIconPanel(false); setShowTemplatePanel(false) }}>🖼</SideBtn>
+            <SideBtn title="아이콘" active={showIconPanel} onClick={() => { setShowIconPanel(v => !v); setShowImagePanel(false); setShowTemplatePanel(false) }}>⬡</SideBtn>
           </div>
 
           {/* Panel content */}
-          {showImagePanel ? (
+          {showTemplatePanel ? (
+            <div className="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden">
+              <div className="px-3 py-2 border-b border-gray-100 text-xs font-semibold text-gray-500">디자인 템플릿</div>
+              <TemplatePicker
+                currentTemplateId={activeSlide?.templateId}
+                onSelect={applyHtmlTemplate}
+                onClear={clearHtmlTemplate}
+              />
+            </div>
+          ) : showImagePanel ? (
             <div className="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden">
               <div className="px-3 py-2 border-b border-gray-100 text-xs font-semibold text-gray-500">이미지 검색</div>
               <ImageSearchPanel onInsert={insertImageUrl} />

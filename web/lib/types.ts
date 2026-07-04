@@ -36,6 +36,7 @@ export interface Slide {
   fabricState?: string  // JSON from fabric canvas.toJSON()
   imageUrl?: string     // AI-generated or stock image URL
   image_prompt?: string // English prompt used to generate imageUrl
+  templateId?: string   // HTML template ID (from html-templates.ts)
 }
 
 export interface Presentation {

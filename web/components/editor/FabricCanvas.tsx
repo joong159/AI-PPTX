@@ -4,6 +4,21 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import type { Slide } from '@/lib/types'
 import type { DesignSettings } from '@/lib/design-settings'
 import { buildFabricObjects, CANVAS_W, CANVAS_H } from '@/lib/slide-to-fabric'
+import { HTML_TEMPLATES } from '@/lib/html-templates'
+
+function getSlotText(zoneId: string, slide: Slide): string {
+  if (zoneId === 'TITLE') return slide.title
+  if (zoneId === 'SUMMARY') return slide.summary
+  if (zoneId === 'LABEL') return slide.key_takeaway || ''
+  if (zoneId === 'STAT') return slide.stat_value || ''
+  if (zoneId === 'STAT_DESC') return slide.stat_description || ''
+  if (zoneId === 'QUOTE') return `"${slide.summary}"`
+  if (zoneId.startsWith('BULLET_')) {
+    const idx = parseInt(zoneId.split('_')[1])
+    return slide.bullets[idx] || ''
+  }
+  return ''
+}
 
 export type CanvasTool =
   | 'select' | 'text'
@@ -106,10 +121,14 @@ export default function FabricCanvas({
     import('fabric').then((fab) => {
       const { Canvas, Rect, Circle, Triangle, Line, Textbox, Path, FabricImage, ActiveSelection } = fab
 
+      const htmlTemplate = slide.templateId
+        ? HTML_TEMPLATES.find(t => t.id === slide.templateId) ?? null
+        : null
+
       canvas = new Canvas(el, {
         width: CANVAS_W,
         height: CANVAS_H,
-        backgroundColor: bgColor || '#F8F9FF',
+        backgroundColor: htmlTemplate ? '' : (bgColor || '#F8F9FF'),
         preserveObjectStacking: true,
         selection: true,
       })
@@ -145,6 +164,30 @@ export default function FabricCanvas({
         if (slide.fabricState) {
           await canvas.loadFromJSON(JSON.parse(slide.fabricState))
           canvas.renderAll()
+        } else if (htmlTemplate) {
+          // Zone-based text objects for HTML template backgrounds
+          htmlTemplate.zones.forEach(zone => {
+            const text = getSlotText(zone.id, slide)
+            if (!text) return
+            const tb = new Textbox(text, {
+              left: zone.x,
+              top: zone.y,
+              width: zone.w,
+              fontSize: zone.fontSize,
+              fill: zone.color,
+              fontWeight: zone.fontWeight || 'normal',
+              textAlign: zone.textAlign || 'left',
+              fontFamily: zone.fontFamily || 'Arial, sans-serif',
+              lineHeight: 1.2,
+              data: { role: zone.role, zoneId: zone.id },
+            } as any)
+            canvas.add(tb)
+          })
+          canvas.renderAll()
+          const json = JSON.stringify(canvas.toJSON(['data']))
+          onChange({ ...slide, fabricState: json })
+          historyRef.current = [json]
+          historyIdxRef.current = 0
         } else {
           const objs = buildFabricObjects(fab, slide, accentColor, bgColor || '#F8F9FF')
           objs.forEach((o: any) => canvas.add(o))
@@ -337,10 +380,20 @@ export default function FabricCanvas({
     fc.hoverCursor = activeTool === 'select' ? 'move' : (cur[activeTool] || 'default')
   }, [activeTool])
 
+  const htmlTemplate = slide.templateId
+    ? HTML_TEMPLATES.find(t => t.id === slide.templateId) ?? null
+    : null
+
   return (
     <div ref={containerRef} className="w-full select-none" style={{ position: 'relative' }}>
-      <div style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})`, transformOrigin: 'top left', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', borderRadius: 4, overflow: 'hidden' }}>
-        <canvas ref={canvasElRef} />
+      <div style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})`, transformOrigin: 'top left', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+        {htmlTemplate && (
+          <div
+            style={{ position: 'absolute', top: 0, left: 0, width: CANVAS_W, height: CANVAS_H, zIndex: 0 }}
+            dangerouslySetInnerHTML={{ __html: htmlTemplate.backgroundHtml }}
+          />
+        )}
+        <canvas ref={canvasElRef} style={{ position: 'relative', zIndex: 1 }} />
       </div>
       <div style={{ height: CANVAS_H * scale }} />
     </div>

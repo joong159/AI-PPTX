@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
+import { autoAssignTemplate } from '@/lib/html-templates'
 
 const SLIDE_TYPES = [
   'title_and_content', 'section_header', 'big_stat',
@@ -77,15 +78,18 @@ Start with a title_and_content or section_header slide.`
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 4000,
+      max_tokens: 8000,
+      response_format: { type: 'json_object' },
     })
 
     const raw = completion.choices[0]?.message?.content || ''
 
     let data
     try {
-      const jsonMatch = raw.match(/\{[\s\S]*\}/)
-      data = JSON.parse(jsonMatch?.[0] || raw)
+      // Strip markdown code fences if present, then extract outermost JSON object
+      const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '')
+      const jsonMatch = stripped.match(/\{[\s\S]*\}/)
+      data = JSON.parse(jsonMatch?.[0] || stripped)
     } catch {
       return NextResponse.json({ error: 'AI returned invalid JSON', raw }, { status: 500 })
     }
@@ -96,10 +100,11 @@ Start with a title_and_content or section_header slide.`
       const imageUrl = imagePrompt
         ? `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt + ', professional presentation, flat design, clean')}&width=800&height=500&nologo=true&seed=${i + 1}`
         : undefined
+      const slideType = (s.slide_type as string) || 'title_and_content'
       return {
         _id: `slide_${i + 1}`,
         slide_index: i,
-        slide_type: s.slide_type || 'title_and_content',
+        slide_type: slideType,
         title: s.title || '',
         summary: s.summary || '',
         bullets: Array.isArray(s.bullets) ? s.bullets : [],
@@ -111,6 +116,7 @@ Start with a title_and_content or section_header slide.`
         stat_description: s.stat_description || null,
         cards: Array.isArray(s.cards) ? s.cards : null,
         timeline_steps: Array.isArray(s.timeline_steps) ? s.timeline_steps : null,
+        templateId: autoAssignTemplate(slideType, i),
       }
     })
 
