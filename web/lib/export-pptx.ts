@@ -46,7 +46,7 @@ export async function exportPptx(presentation: Presentation, design?: DesignSett
         if (!template) throw new Error(`Unknown templateId: ${slide.templateId}`)
         const bgData = await renderTemplateBackgroundToDataUrl(slide.templateId, 2)
         if (bgData) s.addImage({ data: bgData, x: 0, y: 0, w: '100%', h: '100%' })
-        addTemplateZonesToSlide(s, template, slide, scale)
+        await addTemplateZonesToSlide(s, template, slide, scale)
       } else {
         // Fabric.js canvas (AI default layout or user-edited): convert each object
         // to a native pptx text box / shape instead of flattening to one picture.

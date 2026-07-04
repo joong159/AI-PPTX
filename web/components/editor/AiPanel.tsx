@@ -11,9 +11,13 @@ interface Message {
 interface Props {
   slide: Slide
   onUpdateSlide: (updated: Slide) => void
+  allSlides: Slide[]
+  onUpdateAllSlides: (updated: Slide[]) => void
 }
 
-const QUICK = [
+type Mode = 'slide' | 'deck'
+
+const QUICK_SLIDE = [
   '내용을 더 간결하게',
   '불릿 포인트 3개 추가',
   '제목을 더 임팩트 있게',
@@ -22,7 +26,16 @@ const QUICK = [
   '핵심 메시지 강조',
 ]
 
-export default function AiPanel({ slide, onUpdateSlide }: Props) {
+const QUICK_DECK = [
+  '전체 톤을 더 캐주얼하게',
+  '모든 제목을 더 임팩트 있게',
+  '전체를 영어로 번역',
+  '전체적으로 더 간결하게',
+  '전체를 더 전문적인 어조로',
+]
+
+export default function AiPanel({ slide, onUpdateSlide, allSlides, onUpdateAllSlides }: Props) {
+  const [mode, setMode] = useState<Mode>('slide')
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,6 +49,13 @@ export default function AiPanel({ slide, onUpdateSlide }: Props) {
       prevSlideId.current = slide._id
     }
   }, [slide._id])
+
+  // Reset messages when switching between per-slide and whole-deck mode
+  function changeMode(next: Mode) {
+    if (next === mode) return
+    setMode(next)
+    setMessages([])
+  }
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -52,28 +72,54 @@ export default function AiPanel({ slide, onUpdateSlide }: Props) {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/refine', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slide,
-          instruction: msg,
-          history: messages, // send full conversation history
-        }),
-      })
-      const data = await res.json()
+      if (mode === 'deck') {
+        const res = await fetch('/api/refine-deck', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slides: allSlides,
+            instruction: msg,
+            history: messages,
+          }),
+        })
+        const data = await res.json()
 
-      if (data.slide) {
-        onUpdateSlide(data.slide)
-        setMessages([...newMessages, {
-          role: 'assistant',
-          content: data.message || '슬라이드를 수정했습니다. ✓',
-        }])
+        if (data.slides) {
+          onUpdateAllSlides(data.slides)
+          setMessages([...newMessages, {
+            role: 'assistant',
+            content: data.message || '전체 프레젠테이션을 수정했습니다. ✓',
+          }])
+        } else {
+          setMessages([...newMessages, {
+            role: 'assistant',
+            content: `⚠️ ${data.error || '오류가 발생했습니다.'}`,
+          }])
+        }
       } else {
-        setMessages([...newMessages, {
-          role: 'assistant',
-          content: `⚠️ ${data.error || '오류가 발생했습니다.'}`,
-        }])
+        const res = await fetch('/api/refine', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slide,
+            instruction: msg,
+            history: messages, // send full conversation history
+          }),
+        })
+        const data = await res.json()
+
+        if (data.slide) {
+          onUpdateSlide(data.slide)
+          setMessages([...newMessages, {
+            role: 'assistant',
+            content: data.message || '슬라이드를 수정했습니다. ✓',
+          }])
+        } else {
+          setMessages([...newMessages, {
+            role: 'assistant',
+            content: `⚠️ ${data.error || '오류가 발생했습니다.'}`,
+          }])
+        }
       }
     } catch {
       setMessages([...newMessages, {
@@ -91,7 +137,9 @@ export default function AiPanel({ slide, onUpdateSlide }: Props) {
       <div className="p-3 border-b border-gray-100 flex items-center justify-between">
         <div>
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">AI 편집 도우미</div>
-          <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[180px]">{slide.title || '(제목 없음)'}</div>
+          <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[180px]">
+            {mode === 'deck' ? `전체 프레젠테이션 (${allSlides.length}장)` : (slide.title || '(제목 없음)')}
+          </div>
         </div>
         {messages.length > 0 && (
           <button
@@ -103,14 +151,37 @@ export default function AiPanel({ slide, onUpdateSlide }: Props) {
         )}
       </div>
 
+      {/* Mode toggle */}
+      <div className="px-3 pt-2 flex gap-1 border-b border-gray-100 pb-2">
+        <button
+          onClick={() => changeMode('slide')}
+          disabled={loading}
+          className={`flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+            mode === 'slide' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          이 슬라이드만
+        </button>
+        <button
+          onClick={() => changeMode('deck')}
+          disabled={loading}
+          className={`flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+            mode === 'deck' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          전체 프레젠테이션
+        </button>
+      </div>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.length === 0 && (
           <div className="text-center py-6">
             <div className="text-2xl mb-2">✨</div>
             <p className="text-xs text-gray-400 leading-relaxed">
-              이 슬라이드를 어떻게 바꿀까요?<br />
-              아래 빠른 명령이나 직접 입력해보세요.
+              {mode === 'deck'
+                ? <>전체 프레젠테이션을 어떻게 바꿀까요?<br />아래 빠른 명령이나 직접 입력해보세요.</>
+                : <>이 슬라이드를 어떻게 바꿀까요?<br />아래 빠른 명령이나 직접 입력해보세요.</>}
             </p>
           </div>
         )}
@@ -145,7 +216,7 @@ export default function AiPanel({ slide, onUpdateSlide }: Props) {
 
       {/* Quick prompts */}
       <div className="px-3 pb-2 flex flex-wrap gap-1.5">
-        {QUICK.map((q) => (
+        {(mode === 'deck' ? QUICK_DECK : QUICK_SLIDE).map((q) => (
           <button
             key={q}
             onClick={() => send(q)}

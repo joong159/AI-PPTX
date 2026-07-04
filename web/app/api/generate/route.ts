@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
+import { getAiClient, AI_MODEL } from '@/lib/ai-client'
+import { extractJson } from '@/lib/refine-shared'
 import { autoAssignTemplate } from '@/lib/html-templates'
 
 const SLIDE_TYPES = [
@@ -58,7 +59,7 @@ Make content professional, concise, and impactful.`
 
 export async function POST(req: NextRequest) {
   try {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+    const client = getAiClient()
     const { topic, slide_count = 6, language = 'Korean', style = 'professional' } = await req.json()
 
     if (!topic?.trim()) {
@@ -71,43 +72,40 @@ Language: ${language}
 Use diverse slide types from: ${SLIDE_TYPES.join(', ')}
 Start with a title_and_content or section_header slide.`
 
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const completion = await client.chat.completions.create({
+      model: AI_MODEL,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
       max_tokens: 8000,
-      response_format: { type: 'json_object' },
     })
 
     const raw = completion.choices[0]?.message?.content || ''
-
-    let data
-    try {
-      // Strip markdown code fences if present, then extract outermost JSON object
-      const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '')
-      const jsonMatch = stripped.match(/\{[\s\S]*\}/)
-      data = JSON.parse(jsonMatch?.[0] || stripped)
-    } catch {
+    const data = extractJson(raw)
+    if (!data) {
       return NextResponse.json({ error: 'AI returned invalid JSON', raw }, { status: 500 })
     }
 
     // Normalize slides + attach AI image URLs via Pollinations.ai (free, no API key)
+    const usedTemplateIds = new Set<string>()
     data.slides = (data.slides || []).map((s: Record<string, unknown>, i: number) => {
       const imagePrompt = (s.image_prompt as string | undefined)?.trim() || ''
       const imageUrl = imagePrompt
         ? `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt + ', professional presentation, flat design, clean')}&width=800&height=500&nologo=true&seed=${i + 1}`
         : undefined
       const slideType = (s.slide_type as string) || 'title_and_content'
+      const bullets = Array.isArray(s.bullets) ? s.bullets : []
+      const templateId = autoAssignTemplate(slideType, i, { bullets, stat_value: s.stat_value as string | undefined, imageUrl }, usedTemplateIds)
+      usedTemplateIds.add(templateId)
       return {
         _id: `slide_${i + 1}`,
         slide_index: i,
         slide_type: slideType,
         title: s.title || '',
         summary: s.summary || '',
-        bullets: Array.isArray(s.bullets) ? s.bullets : [],
+        bullets,
         key_takeaway: s.key_takeaway || '',
         speaker_notes: s.speaker_notes || '',
         image_prompt: imagePrompt || undefined,
@@ -116,7 +114,7 @@ Start with a title_and_content or section_header slide.`
         stat_description: s.stat_description || null,
         cards: Array.isArray(s.cards) ? s.cards : null,
         timeline_steps: Array.isArray(s.timeline_steps) ? s.timeline_steps : null,
-        templateId: autoAssignTemplate(slideType, i),
+        templateId,
       }
     })
 
@@ -124,8 +122,8 @@ Start with a title_and_content or section_header slide.`
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Generate error:', msg)
-    if (msg.includes('GROQ_API_KEY') || msg.includes('apiKey')) {
-      return NextResponse.json({ error: 'GROQ_API_KEY가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.' }, { status: 500 })
+    if (msg.includes('NVIDIA_API_KEY') || msg.includes('apiKey')) {
+      return NextResponse.json({ error: 'NVIDIA_API_KEY가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.' }, { status: 500 })
     }
     return NextResponse.json({ error: `생성 실패: ${msg}` }, { status: 500 })
   }

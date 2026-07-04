@@ -92,8 +92,12 @@ export function buildFabricObjects(fab: any, slide: Slide, accent: string, bg: s
   else if (slide.slide_type === 'big_stat') {
     addBg(); addHeader()
     const statFs = smartSize(slide.stat_value || '', 130, 6, 60)
+    // No explicit `width` here: Fabric.js's Textbox fails to render any pixels
+    // at all when given a width much larger than short, space-less text (e.g.
+    // "43%") — confirmed via isolated repro. Auto-sizing avoids the bug and is
+    // also the more correct behavior for a big number that should never wrap.
     if (slide.stat_value) objs.push(mkText(slide.stat_value, {
-      left: 40, top: 108, width: W * 0.55, fontSize: statFs, fontWeight: 'bold', fill: accent, data: { role: 'stat' },
+      left: 40, top: 108, fontSize: statFs, fontWeight: 'bold', fill: accent, data: { role: 'stat' },
     }))
     objs.push(new Line([40, 290, 220, 290], { stroke: accent, strokeWidth: 3, selectable: false, evented: false }))
     if (slide.stat_description) {

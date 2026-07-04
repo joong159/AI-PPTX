@@ -156,6 +156,17 @@ export default function EditorClient() {
     updateSlide({ ...updated, fabricState: undefined })
   }, [updateSlide])
 
+  const updateAllSlidesFromAi = useCallback((updated: Slide[]) => {
+    setPresentation(prev => {
+      // Clear fabricState so every canvas rebuilds from AI-updated structured data
+      const slides = updated.map(s => ({ ...s, fabricState: undefined }))
+      const next = { ...prev, slides }
+      triggerAutoSave(next, design, themeId)
+      return next
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [design, themeId, triggerAutoSave])
+
   function updateSlideType(index: number, type: SlideType) {
     setPresentation(prev => {
       const slides = [...prev.slides]
@@ -256,6 +267,7 @@ export default function EditorClient() {
     if (!canvas) return
     import('fabric').then(({ FabricImage }) => {
       FabricImage.fromURL(url, { crossOrigin: 'anonymous' }).then((img: any) => {
+        img.set({ originX: 'left', originY: 'top' })
         img.scaleToWidth(Math.min(500, 1280 / 2))
         img.set({ left: 1280 / 2 - img.getScaledWidth() / 2, top: 720 / 2 - img.getScaledHeight() / 2 })
         canvas.add(img); canvas.setActiveObject(img); canvas.renderAll()
@@ -582,7 +594,12 @@ export default function EditorClient() {
         )}
         {rightPanel === 'ai' && activeSlide && (
           <div className="w-72 flex-shrink-0">
-            <AiPanel slide={activeSlide} onUpdateSlide={updateSlideFromAi} />
+            <AiPanel
+              slide={activeSlide}
+              onUpdateSlide={updateSlideFromAi}
+              allSlides={presentation.slides}
+              onUpdateAllSlides={updateAllSlidesFromAi}
+            />
           </div>
         )}
         {rightPanel === 'design' && (

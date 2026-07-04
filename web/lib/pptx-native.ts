@@ -177,9 +177,41 @@ export function addFabricObjectsToSlide(pptxSlide: any, objects: any[], scale: P
   }
 }
 
-export function addTemplateZonesToSlide(pptxSlide: any, template: HtmlTemplate, slide: Slide, scale: PxScale) {
+async function fetchImageAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { mode: 'cors' })
+    const blob = await res.blob()
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  } catch {
+    return null
+  }
+}
+
+export async function addTemplateZonesToSlide(pptxSlide: any, template: HtmlTemplate, slide: Slide, scale: PxScale) {
   const fontScale = (scale.x + scale.y) / 2
   for (const zone of template.zones) {
+    if (zone.role === 'image') {
+      if (!slide.imageUrl) continue
+      const data = await fetchImageAsDataUrl(slide.imageUrl)
+      if (!data) continue
+      const w = zone.w * scale.x
+      const h = zone.h * scale.y
+      pptxSlide.addImage({
+        data,
+        x: zone.x * scale.x,
+        y: zone.y * scale.y,
+        w,
+        h,
+        sizing: { type: 'cover', w, h },
+        rounding: true,
+      })
+      continue
+    }
     const text = getZoneText(zone.id, slide)
     if (!text) continue
     const { color } = parseColor(zone.color)

@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI-generated template candidates (intermediate review artifacts, not final product)
+/scripts/template-candidates/

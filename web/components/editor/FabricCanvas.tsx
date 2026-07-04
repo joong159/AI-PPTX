@@ -5,6 +5,7 @@ import type { Slide } from '@/lib/types'
 import type { DesignSettings } from '@/lib/design-settings'
 import { buildFabricObjects, CANVAS_W, CANVAS_H } from '@/lib/slide-to-fabric'
 import { HTML_TEMPLATES } from '@/lib/html-templates'
+import { applyCoverFit } from '@/lib/image-fit'
 
 function getSlotText(zoneId: string, slide: Slide): string {
   if (zoneId === 'TITLE') return slide.title
@@ -117,8 +118,17 @@ export default function FabricCanvas({
     if (!el) return
     let canvas: any
     let keyHandler: ((e: KeyboardEvent) => void) | null = null
+    // Guards against React Strict Mode's dev-only mount->cleanup->mount: the
+    // dynamic import('fabric') is still async when cleanup can fire, so
+    // `canvas` may still be undefined at that point and `canvas?.dispose()`
+    // would silently no-op — leaving a stale canvas-container in the DOM that
+    // a second mount then duplicates alongside (inflating the layout size and
+    // breaking the visible aspect ratio). Bail out of the async callback
+    // entirely if this effect instance was already cleaned up.
+    let cancelled = false
 
     import('fabric').then((fab) => {
+      if (cancelled) return
       const { Canvas, Rect, Circle, Triangle, Line, Textbox, Path, FabricImage, ActiveSelection } = fab
 
       const htmlTemplate = slide.templateId
@@ -135,18 +145,26 @@ export default function FabricCanvas({
       fabricRef.current = { canvas, fab }
 
       // ── Load ──────────────────────────────────────────────
-      const insertImageUrl = (url: string) => {
-        FabricImage.fromURL(url, { crossOrigin: 'anonymous' }).then((img: any) => {
-          const placeholder = canvas.getObjects().find((o: any) => o.data?.role === 'img-placeholder')
-          if (placeholder) {
-            // Fit image into placeholder bounds
-            const pw = placeholder.width ?? 500
-            const ph = placeholder.height ?? (CANVAS_H - 128)
-            img.scaleToWidth(pw)
-            if (img.getScaledHeight() > ph) img.scaleToHeight(ph)
-            img.set({ left: placeholder.left ?? 32, top: placeholder.top ?? 108, rx: 8, ry: 8 })
+      // Returns a Promise so callers can await it BEFORE taking the fabricState
+      // snapshot/calling onChange — otherwise onChange's state update can trigger
+      // a remount (see the effect's dependency array below) that disposes this
+      // canvas while the image is still loading, orphaning it invisibly.
+      const insertImageUrl = (url: string, box?: { left: number; top: number; width: number; height: number; rx?: number }) => {
+        return FabricImage.fromURL(url, { crossOrigin: 'anonymous' }).then((img: any) => {
+          const placeholder = !box && canvas.getObjects().find((o: any) => o.data?.role === 'img-placeholder')
+          if (box) {
+            applyCoverFit(fab, img, box)
+          } else if (placeholder) {
+            applyCoverFit(fab, img, {
+              left: placeholder.left ?? 32,
+              top: placeholder.top ?? 108,
+              width: placeholder.width ?? 500,
+              height: placeholder.height ?? (CANVAS_H - 128),
+              rx: 8,
+            })
             canvas.remove(placeholder)
           } else {
+            img.set({ originX: 'left', originY: 'top' })
             img.scaleToWidth(Math.min(500, CANVAS_W / 2))
             img.set({ left: CANVAS_W / 2 - img.getScaledWidth() / 2, top: CANVAS_H / 2 - img.getScaledHeight() / 2 })
           }
@@ -156,7 +174,6 @@ export default function FabricCanvas({
           const bgObj = canvas.getObjects().find((o: any) => o.data?.role === 'bg')
           if (bgObj) canvas.sendObjectToBack(bgObj)
           canvas.renderAll()
-          doSave(canvas)
         }).catch(() => { /* silent fail if image unavailable */ })
       }
 
@@ -172,7 +189,12 @@ export default function FabricCanvas({
             const tb = new Textbox(text, {
               left: zone.x,
               top: zone.y,
-              width: zone.w,
+              // Fabric's Textbox fails to render any pixels at all when given
+              // a `width` much larger than short, space-less text (e.g. a
+              // "43%" stat in a wide zone) — confirmed via isolated repro.
+              // Stat numbers never need to wrap anyway, so just skip the
+              // fixed width for that role and let it auto-size.
+              ...(zone.role === 'stat' ? {} : { width: zone.w }),
               fontSize: zone.fontSize,
               fill: zone.color,
               fontWeight: zone.fontWeight || 'normal',
@@ -184,6 +206,14 @@ export default function FabricCanvas({
             canvas.add(tb)
           })
           canvas.renderAll()
+
+          // Load the real AI/stock image into the template's IMAGE zone, if any —
+          // awaited so the first fabricState snapshot below already includes it.
+          const imageZone = htmlTemplate.zones.find(z => z.role === 'image')
+          if (imageZone && slide.imageUrl) {
+            await insertImageUrl(slide.imageUrl, { left: imageZone.x, top: imageZone.y, width: imageZone.w, height: imageZone.h, rx: imageZone.rx ?? 8 })
+          }
+
           const json = JSON.stringify(canvas.toJSON(['data']))
           onChange({ ...slide, fabricState: json })
           historyRef.current = [json]
@@ -192,8 +222,8 @@ export default function FabricCanvas({
           const objs = buildFabricObjects(fab, slide, accentColor, bgColor || '#F8F9FF')
           objs.forEach((o: any) => canvas.add(o))
           canvas.renderAll()
-          // Auto-load AI image if available
-          if (slide.imageUrl) insertImageUrl(slide.imageUrl)
+          // Auto-load AI image if available — awaited, same reasoning as above.
+          if (slide.imageUrl) await insertImageUrl(slide.imageUrl)
           const json = JSON.stringify(canvas.toJSON(['data']))
           onChange({ ...slide, fabricState: json })
           historyRef.current = [json]
@@ -314,6 +344,7 @@ export default function FabricCanvas({
       const addImage = (file: File) => {
         const url = URL.createObjectURL(file)
         FabricImage.fromURL(url).then((img: any) => {
+          img.set({ originX: 'left', originY: 'top' })
           img.scaleToWidth(Math.min(500, CANVAS_W / 2))
           img.set({ left: CANVAS_W / 2 - img.getScaledWidth() / 2, top: CANVAS_H / 2 - img.getScaledHeight() / 2 })
           canvas.add(img); canvas.setActiveObject(img); canvas.renderAll(); doSave(canvas)
@@ -360,6 +391,7 @@ export default function FabricCanvas({
     })
 
     return () => {
+      cancelled = true
       if (keyHandler) window.removeEventListener('keydown', keyHandler)
       canvas?.dispose()
       fabricRef.current = null
@@ -385,7 +417,7 @@ export default function FabricCanvas({
     : null
 
   return (
-    <div ref={containerRef} className="w-full select-none" style={{ position: 'relative' }}>
+    <div ref={containerRef} className="w-full select-none" style={{ position: 'relative', height: CANVAS_H * scale, overflow: 'hidden' }}>
       <div style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})`, transformOrigin: 'top left', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
         {htmlTemplate && (
           <div
@@ -395,7 +427,6 @@ export default function FabricCanvas({
         )}
         <canvas ref={canvasElRef} style={{ position: 'relative', zIndex: 1 }} />
       </div>
-      <div style={{ height: CANVAS_H * scale }} />
     </div>
   )
 }

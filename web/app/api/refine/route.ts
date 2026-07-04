@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
-
-function extractJson(raw: string) {
-  // 1) direct parse
-  try { return JSON.parse(raw) } catch {}
-  // 2) strip markdown code fences
-  const fence = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
-  if (fence) try { return JSON.parse(fence[1]) } catch {}
-  // 3) greedy brace match
-  const brace = raw.match(/\{[\s\S]*\}/)
-  if (brace) try { return JSON.parse(brace[0]) } catch {}
-  return null
-}
+import { getAiClient, AI_MODEL } from '@/lib/ai-client'
+import { extractJson, stripTransportFields, restoreTransportFields } from '@/lib/refine-shared'
 
 export async function POST(req: NextRequest) {
   try {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+    const client = getAiClient()
     const { slide, instruction, history = [] } = await req.json()
     if (!slide || !instruction) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
 
@@ -25,15 +14,15 @@ export async function POST(req: NextRequest) {
       content: m.role === 'assistant' ? m.content : m.content,
     }))
 
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const completion = await client.chat.completions.create({
+      model: AI_MODEL,
       messages: [
         {
           role: 'system',
           content: `You are an expert slide editor. The user has a slide they want to edit.
 
 Current slide JSON:
-${JSON.stringify(slide, null, 2)}
+${JSON.stringify(stripTransportFields(slide), null, 2)}
 
 Rules:
 - Return ONLY valid JSON, no markdown, no explanation outside JSON
@@ -64,16 +53,16 @@ Rules:
       return NextResponse.json({ error: 'AI 응답에 slide 데이터가 없습니다.' }, { status: 500 })
     }
 
-    // Ensure required fields are preserved
-    data.slide._id = slide._id
-    data.slide.slide_index = slide.slide_index
+    // Re-attach transport fields (fabricState/imageUrl/image_prompt/templateId)
+    // that were stripped before the prompt, and force back identity fields.
+    data.slide = restoreTransportFields(data.slide, slide)
 
     return NextResponse.json(data)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Refine error:', msg)
-    if (msg.includes('GROQ_API_KEY') || msg.includes('apiKey')) {
-      return NextResponse.json({ error: 'GROQ_API_KEY가 설정되지 않았습니다.' }, { status: 500 })
+    if (msg.includes('NVIDIA_API_KEY') || msg.includes('apiKey')) {
+      return NextResponse.json({ error: 'NVIDIA_API_KEY가 설정되지 않았습니다.' }, { status: 500 })
     }
     return NextResponse.json({ error: `수정 실패: ${msg}` }, { status: 500 })
   }

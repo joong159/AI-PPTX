@@ -13,7 +13,8 @@ export interface SlotZone {
   fontWeight?: string
   textAlign?: 'left' | 'center' | 'right'
   fontFamily?: string
-  role: 'title' | 'summary' | 'bullet' | 'stat' | 'stat_desc' | 'quote' | 'label'
+  rx?: number      // corner rounding, image zones only
+  role: 'title' | 'summary' | 'bullet' | 'stat' | 'stat_desc' | 'quote' | 'label' | 'image'
 }
 
 export interface HtmlTemplate {
@@ -60,6 +61,11 @@ export function buildBackgroundOnlyHtml(template: HtmlTemplate): string {
 export function buildRenderedHtml(template: HtmlTemplate, slide: Slide): string {
   const textLayers = template.zones
     .map(zone => {
+      if (zone.role === 'image') {
+        if (!slide.imageUrl) return ''
+        const rounding = zone.rx ?? 8
+        return `<img src="${escapeHtml(slide.imageUrl)}" style="position:absolute;left:${zone.x}px;top:${zone.y}px;width:${zone.w}px;height:${zone.h}px;object-fit:cover;border-radius:${rounding}px;" />`
+      }
       const text = getZoneText(zone.id, slide)
       if (!text) return ''
       const style = [
@@ -99,10 +105,63 @@ const SLIDE_TYPE_TEMPLATES: Record<string, string[]> = {
   team_grid:         ['corporate-navy', 'gradient-sunset', 'glass-morph', 'minimal-white', 'team-grid-cards'],
 }
 
-export function autoAssignTemplate(slideType: string, slideIndex: number): string {
+export interface TemplateSelectionContent {
+  bullets?: string[]
+  stat_value?: string
+  imageUrl?: string
+}
+
+export function autoAssignTemplate(
+  slideType: string,
+  slideIndex: number,
+  content?: TemplateSelectionContent,
+  usedIds?: Set<string>,
+): string {
   const list = SLIDE_TYPE_TEMPLATES[slideType] ?? SLIDE_TYPE_TEMPLATES.title_and_content
-  // rotate through list so consecutive same-type slides get different designs
-  return list[slideIndex % list.length]
+  if (!content) {
+    // rotate through list so consecutive same-type slides get different designs
+    return list[slideIndex % list.length]
+  }
+
+  // Content-aware fit score: prefer templates whose zones actually match this
+  // slide's shape (bullet count, stat presence, image presence) over a blind
+  // round-robin, while still favoring variety across the deck.
+  const bulletCount = content.bullets?.length ?? 0
+  const hasStat = !!content.stat_value
+  const hasImage = !!content.imageUrl
+
+  const scored = list
+    .map(id => {
+      const t = HTML_TEMPLATES.find(tpl => tpl.id === id)
+      if (!t) return null
+      const bulletZones = t.zones.filter(z => z.role === 'bullet').length
+      const hasStatZone = t.zones.some(z => z.role === 'stat')
+      const hasImageZone = t.zones.some(z => z.role === 'image')
+
+      let score = 0
+      if (bulletCount > 0) {
+        // Reward a close/exact fit; heavily penalize templates that can't hold
+        // all the bullets (content would be visually dropped).
+        score += bulletZones >= bulletCount ? 10 - Math.min(10, bulletZones - bulletCount) : -(bulletCount - bulletZones) * 5
+      }
+      if (hasStat === hasStatZone) score += 5
+      if (hasImage === hasImageZone) score += 5
+      if (usedIds?.has(id)) score -= 3
+      return { id, score }
+    })
+    .filter((s): s is { id: string; score: number } => s !== null)
+
+  if (!scored.length) return list[slideIndex % list.length]
+
+  // Pick randomly among every candidate close to the top score, rather than
+  // always the single highest scorer. AI-generated slides of the same type
+  // tend to land on similar bullet/stat/image shapes across totally different
+  // topics, so a strict argmax would deterministically produce the exact same
+  // template every time — this keeps the fit constraint while restoring variety.
+  const bestScore = Math.max(...scored.map(s => s.score))
+  const MARGIN = 4
+  const topCandidates = scored.filter(s => s.score >= bestScore - MARGIN)
+  return topCandidates[Math.floor(Math.random() * topCandidates.length)].id
 }
 
 // ─── 20 HTML Templates ───────────────────────────────────────────────────────
@@ -121,6 +180,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_0', x: 80, y: 490, w: 740, h: 40, fontSize: 20, color: 'rgba(255,255,255,0.8)', role: 'bullet' },
       { id: 'BULLET_1', x: 80, y: 540, w: 740, h: 40, fontSize: 20, color: 'rgba(255,255,255,0.8)', role: 'bullet' },
       { id: 'BULLET_2', x: 80, y: 590, w: 740, h: 40, fontSize: 20, color: 'rgba(255,255,255,0.8)', role: 'bullet' },
+      { id: 'IMAGE', x: 840, y: 180, w: 340, h: 360, fontSize: 0, color: 'transparent', rx: 16, role: 'image' },
     ],
     backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 60%,#0f172a 100%);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
   <div style="position:absolute;right:-120px;top:-120px;width:560px;height:560px;background:radial-gradient(circle,rgba(79,70,229,0.22),transparent 70%);border-radius:50%;"></div>
@@ -290,6 +350,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_0', x: 80, y: 480, w: 650, h: 44, fontSize: 19, color: '#44403c', role: 'bullet' },
       { id: 'BULLET_1', x: 80, y: 530, w: 650, h: 44, fontSize: 19, color: '#44403c', role: 'bullet' },
       { id: 'BULLET_2', x: 80, y: 580, w: 650, h: 44, fontSize: 19, color: '#44403c', role: 'bullet' },
+      { id: 'IMAGE', x: 860, y: 190, w: 340, h: 340, fontSize: 0, color: 'transparent', rx: 170, role: 'image' },
     ],
     backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#fef3c7,#fde68a 40%,#fef3c7);position:relative;overflow:hidden;font-family:Georgia,serif;">
   <div style="position:absolute;right:0;top:0;width:520px;height:720px;background:linear-gradient(160deg,#d97706,#92400e);clip-path:polygon(20% 0, 100% 0, 100% 100%, 0 100%);"></div>
@@ -380,6 +441,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_0', x: 540, y: 570, w: 200, h: 80, fontSize: 17, color: '#475569', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_1', x: 760, y: 570, w: 200, h: 80, fontSize: 17, color: '#475569', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_2', x: 980, y: 570, w: 200, h: 80, fontSize: 17, color: '#475569', textAlign: 'center', role: 'bullet' },
+      { id: 'IMAGE', x: 0, y: 0, w: 500, h: 720, fontSize: 0, color: 'transparent', rx: 0, role: 'image' },
     ],
     backgroundHtml: `<div style="width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;font-family:Georgia,serif;">
   <div style="position:absolute;top:0;left:0;width:500px;height:720px;background:linear-gradient(160deg,#0f172a,#1e293b);"></div>
@@ -729,6 +791,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'STAT', x: 70, y: 440, w: 300, h: 100, fontSize: 52, color: '#c9a961', fontWeight: 'bold', role: 'stat' },
       { id: 'STAT_DESC', x: 70, y: 545, w: 400, h: 40, fontSize: 16, color: '#918c80', role: 'stat_desc' },
       { id: 'BULLET_0', x: 70, y: 600, w: 560, h: 34, fontSize: 16, color: '#b8b2a5', role: 'bullet' },
+      { id: 'IMAGE', x: 840, y: 80, w: 360, h: 280, fontSize: 0, color: 'transparent', rx: 4, role: 'image' },
     ],
     backgroundHtml: `<div style="width:1280px;height:720px;background:#151310;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
   <div style="position:absolute;top:0;right:0;bottom:0;width:520px;background:linear-gradient(160deg,#2b2620,#151310);"></div>
@@ -886,6 +949,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'SUMMARY', x: 760, y: 340, w: 440, h: 100, fontSize: 17, color: '#a1a1aa', role: 'summary' },
       { id: 'BULLET_0', x: 760, y: 480, w: 440, h: 34, fontSize: 15, color: '#71717a', role: 'bullet' },
       { id: 'BULLET_1', x: 760, y: 514, w: 440, h: 34, fontSize: 15, color: '#71717a', role: 'bullet' },
+      { id: 'IMAGE', x: 0, y: 0, w: 720, h: 720, fontSize: 0, color: 'transparent', rx: 0, role: 'image' },
     ],
     backgroundHtml: `<div style="width:1280px;height:720px;background:#18181b;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;width:720px;height:720px;background:linear-gradient(135deg,#3f3f46,#27272a);"></div>
