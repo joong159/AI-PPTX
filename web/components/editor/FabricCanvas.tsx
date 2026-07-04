@@ -16,7 +16,15 @@ function getSlotText(zoneId: string, slide: Slide): string {
   if (zoneId === 'QUOTE') return `"${slide.summary}"`
   if (zoneId.startsWith('BULLET_')) {
     const idx = parseInt(zoneId.split('_')[1])
-    return slide.bullets[idx] || ''
+    if (slide.bullets[idx]) return slide.bullets[idx]
+    // timeline/three_cards/comparison slide types store their content in
+    // timeline_steps/cards instead of bullets — HTML templates only know
+    // about BULLET_N zones, so map whichever field this slide actually has.
+    const step = slide.timeline_steps?.[idx]
+    if (step) return `${step.step_title}: ${step.step_desc}`
+    const card = slide.cards?.[idx]
+    if (card) return `${card.card_title}: ${card.card_content}`
+    return ''
   }
   return ''
 }
@@ -92,6 +100,13 @@ export default function FabricCanvas({
   slideRef.current = slide
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
+  // Fabric's Canvas.dispose() is async (returns a Promise) and tears down/
+  // recreates internal DOM structure on the shared <canvas> element. Switching
+  // slides re-runs this effect on the SAME element, so without waiting for a
+  // prior disposal to finish first, a new Canvas can start rendering while the
+  // old one is still mid-teardown — leaving stale text visibly bleeding
+  // through underneath the new slide's content.
+  const pendingDisposeRef = useRef<Promise<unknown> | null>(null)
 
   useEffect(() => {
     const el = containerRef.current
@@ -127,7 +142,11 @@ export default function FabricCanvas({
     // entirely if this effect instance was already cleaned up.
     let cancelled = false
 
-    import('fabric').then((fab) => {
+    import('fabric').then(async (fab) => {
+      if (pendingDisposeRef.current) {
+        await pendingDisposeRef.current
+        pendingDisposeRef.current = null
+      }
       if (cancelled) return
       const { Canvas, Rect, Circle, Triangle, Line, Textbox, Path, FabricImage, ActiveSelection } = fab
 
@@ -393,7 +412,7 @@ export default function FabricCanvas({
     return () => {
       cancelled = true
       if (keyHandler) window.removeEventListener('keydown', keyHandler)
-      canvas?.dispose()
+      if (canvas) pendingDisposeRef.current = canvas.dispose()
       fabricRef.current = null
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
