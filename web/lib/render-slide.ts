@@ -28,6 +28,11 @@ async function renderHtmlTemplateSlide(slide: Slide, multiplier = 1): Promise<st
   document.body.appendChild(container)
 
   try {
+    // html2canvas can rasterize before a @font-face web font finishes
+    // fetching, baking the fallback font into the PNG permanently.
+    if (typeof document !== 'undefined' && document.fonts) {
+      try { await document.fonts.ready } catch { /* ignore */ }
+    }
     const { default: html2canvas } = await import('html2canvas')
     const canvas = await html2canvas(container, {
       width: CANVAS_W,
@@ -110,6 +115,17 @@ export async function getSlideFabricObjects(
 async function renderFabricSlide(slide: Slide, accent: string, bg: string, multiplier = 1): Promise<string> {
   const fab = await import('fabric')
   const { Canvas } = fab
+
+  // Canvas 2D text doesn't wait for @font-face to load on its own — force it
+  // before building/rendering any Textbox, same as the interactive editor.
+  if (typeof document !== 'undefined' && document.fonts) {
+    try {
+      await Promise.all([
+        document.fonts.load("400 16px 'Pretendard Variable'"),
+        document.fonts.load("700 16px 'Pretendard Variable'"),
+      ])
+    } catch { /* ignore */ }
+  }
 
   const el = document.createElement('canvas')
   el.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;pointer-events:none;'

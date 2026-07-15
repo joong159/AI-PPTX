@@ -35,7 +35,7 @@ export function buildFabricObjects(fab: any, slide: Slide, accent: string, bg: s
 
   const mkRect = (o: object) => new Rect({ strokeWidth: 0, rx: 0, ry: 0, ...o })
   const mkText = (text: string, o: object) => new Textbox(text, {
-    fontFamily: 'Arial, sans-serif', fontSize: 24, fill: txt, editable: true, ...o,
+    fontFamily: "'Pretendard Variable', 'Calibri', 'Segoe UI', Arial, sans-serif", fontSize: 24, fill: txt, editable: true, ...o,
   })
 
   const addBg = (fill = bg) => objs.push(mkRect({
@@ -166,11 +166,11 @@ export function buildFabricObjects(fab: any, slide: Slide, accent: string, bg: s
   else if (slide.slide_type === 'quote_slide') {
     addBg()
     objs.push(mkRect({ left: 40, top: 140, width: 8, height: H - 280, fill: accent, selectable: false, evented: false }))
-    objs.push(mkText('"', { left: 50, top: 30, width: 220, fontSize: 200, fill: accent + '1A', fontFamily: 'Georgia, serif', selectable: false, evented: false }))
+    objs.push(mkText('"', { left: 50, top: 30, width: 220, fontSize: 200, fill: accent + '1A', fontFamily: "'Cambria', Georgia, serif", selectable: false, evented: false }))
     const quoteFs = smartSize(slide.title || '', 36, 80, 20)
-    objs.push(mkText(slide.title || '', { left: 70, top: 170, width: W - 120, fontSize: quoteFs, fontWeight: 'bold', fontFamily: 'Georgia, serif', data: { role: 'quote' } }))
+    objs.push(mkText(slide.title || '', { left: 70, top: 170, width: W - 120, fontSize: quoteFs, fontWeight: 'bold', fontFamily: "'Cambria', Georgia, serif", data: { role: 'quote' } }))
     objs.push(new Line([W / 2 - 100, H - 120, W / 2 + 100, H - 120], { stroke: accent, strokeWidth: 2, selectable: false, evented: false }))
-    if (slide.summary) objs.push(mkText(slide.summary, { left: 40, top: H - 108, width: W - 80, fontSize: 20, fill: accent, textAlign: 'center', fontStyle: 'italic', fontFamily: 'Georgia, serif', data: { role: 'attr' } }))
+    if (slide.summary) objs.push(mkText(slide.summary, { left: 40, top: H - 108, width: W - 80, fontSize: 20, fill: accent, textAlign: 'center', fontStyle: 'italic', fontFamily: "'Cambria', Georgia, serif", data: { role: 'attr' } }))
   }
 
   // ── IMAGE TEXT ──────────────────────────────────────────

@@ -3,13 +3,21 @@
 // review. Only candidates a human picks get manually integrated into
 // lib/html-templates.ts afterward — this script never writes to that file.
 //
+// Uses the Claude API directly (not the NVIDIA client the rest of the app
+// uses) — the NVIDIA free-tier endpoint reliably hung on this larger,
+// structured-JSON-generation workload (confirmed via direct curl, unrelated
+// to this script's code) while trivial requests succeeded fine.
+//
 // Run: node --env-file=.env.local --experimental-strip-types scripts/generate-templates.ts
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getAiClient, AI_MODEL } from '../lib/ai-client.ts'
+import Anthropic from '@anthropic-ai/sdk'
 import { extractJson } from '../lib/refine-shared.ts'
 import { HTML_TEMPLATES, HTML_TEMPLATE_CATEGORIES } from '../lib/html-templates.ts'
+
+const AI_MODEL = 'claude-opus-4-8'
+const anthropic = new Anthropic()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = path.join(__dirname, 'template-candidates')
@@ -114,39 +122,46 @@ function validateCandidate(obj: any): ValidationResult {
 }
 
 async function generateOne(brief: string, index: number) {
-  const client = getAiClient()
   const { system, user } = buildPrompt(brief)
   console.log(`\n[${index + 1}/${STYLE_BRIEFS.length}] Generating: ${brief.slice(0, 40)}...`)
 
-  try {
-    const completion = await client.chat.completions.create({
-      model: AI_MODEL,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.75,
-      max_tokens: 4000,
-    })
-    const raw = completion.choices[0]?.message?.content || ''
-    const parsed = extractJson(raw)
-    if (!parsed) {
-      console.log(`  ✗ REJECTED — could not parse JSON. Raw (first 200 chars): ${raw.slice(0, 200)}`)
-      return null
+  const MAX_ATTEMPTS = 2
+  let raw = ''
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const message = await anthropic.messages.create({
+        model: AI_MODEL,
+        max_tokens: 4000,
+        system,
+        messages: [{ role: 'user', content: user }],
+      })
+      const textBlock = message.content.find((b): b is Anthropic.TextBlock => b.type === 'text')
+      raw = textBlock?.text || ''
+      break
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.log(`  ... attempt ${attempt}/${MAX_ATTEMPTS} failed (${msg})`)
+      if (attempt === MAX_ATTEMPTS) {
+        console.log(`  ✗ ERROR — gave up after ${MAX_ATTEMPTS} attempts`)
+        return null
+      }
     }
-    const result = validateCandidate(parsed)
-    if (!result.valid) {
-      console.log(`  ✗ REJECTED — ${result.reason}`)
-      return null
-    }
-    const outPath = path.join(OUT_DIR, `${parsed.id}.json`)
-    fs.writeFileSync(outPath, JSON.stringify(parsed, null, 2))
-    console.log(`  ✓ ACCEPTED — ${parsed.id} (${parsed.name}, ${parsed.category}) -> ${outPath}`)
-    return parsed
-  } catch (err) {
-    console.log(`  ✗ ERROR — ${err instanceof Error ? err.message : String(err)}`)
+  }
+
+  const parsed = extractJson(raw)
+  if (!parsed) {
+    console.log(`  ✗ REJECTED — could not parse JSON. Raw (first 200 chars): ${raw.slice(0, 200)}`)
     return null
   }
+  const result = validateCandidate(parsed)
+  if (!result.valid) {
+    console.log(`  ✗ REJECTED — ${result.reason}`)
+    return null
+  }
+  const outPath = path.join(OUT_DIR, `${parsed.id}.json`)
+  fs.writeFileSync(outPath, JSON.stringify(parsed, null, 2))
+  console.log(`  ✓ ACCEPTED — ${parsed.id} (${parsed.name}, ${parsed.category}) -> ${outPath}`)
+  return parsed
 }
 
 function buildGalleryHtml(candidates: any[]): string {

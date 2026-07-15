@@ -64,6 +64,9 @@ export function buildBackgroundOnlyHtml(template: HtmlTemplate): string {
 }
 
 export function buildRenderedHtml(template: HtmlTemplate, slide: Slide): string {
+  const defaultFontFamily = template.backgroundHtml.includes('Georgia')
+    ? "'Cambria', Georgia, serif"
+    : "'Pretendard Variable', 'Calibri', 'Segoe UI', Arial, sans-serif"
   const textLayers = template.zones
     .map(zone => {
       if (zone.role === 'image') {
@@ -83,7 +86,7 @@ export function buildRenderedHtml(template: HtmlTemplate, slide: Slide): string 
         `color:${zone.color}`,
         `font-weight:${zone.fontWeight || 'normal'}`,
         `text-align:${zone.textAlign || 'left'}`,
-        `font-family:${zone.fontFamily || 'Arial, sans-serif'}`,
+        `font-family:${zone.fontFamily || defaultFontFamily}`,
         'line-height:1.25',
         'overflow:hidden',
         'word-break:break-word',
@@ -194,13 +197,13 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 80, y: 590, w: 740, h: 40, fontSize: 20, color: 'rgba(255,255,255,0.8)', role: 'bullet' },
       { id: 'IMAGE', x: 840, y: 180, w: 340, h: 360, fontSize: 0, color: 'transparent', rx: 16, role: 'image' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 60%,#0f172a 100%);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 60%,#0f172a 100%);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;right:-120px;top:-120px;width:560px;height:560px;background:radial-gradient(circle,rgba(79,70,229,0.22),transparent 70%);border-radius:50%;"></div>
   <div style="position:absolute;left:-80px;bottom:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(124,58,237,0.15),transparent 70%);border-radius:50%;"></div>
   <div style="position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#4f46e5,#7c3aed,#4f46e5);"></div>
   <div style="position:absolute;left:80px;top:148px;width:64px;height:5px;background:#4f46e5;border-radius:2px;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 60%,#0f172a 100%);position:relative;overflow:hidden;font-family:Arial,sans-serif;box-sizing:border-box;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 60%,#0f172a 100%);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;box-sizing:border-box;">
   <div style="position:absolute;right:-120px;top:-120px;width:560px;height:560px;background:radial-gradient(circle,rgba(79,70,229,0.22),transparent 70%);border-radius:50%;"></div>
   <div style="position:absolute;left:-80px;bottom:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(124,58,237,0.15),transparent 70%);border-radius:50%;"></div>
   <div style="position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#4f46e5,#7c3aed,#4f46e5);"></div>
@@ -229,13 +232,13 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 500, y: 510, w: 280, h: 120, fontSize: 17, color: '#fff', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_2', x: 840, y: 510, w: 280, h: 120, fontSize: 17, color: '#fff', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#f97316,#ec4899,#8b5cf6);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#f97316,#ec4899,#8b5cf6);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:600px;background:rgba(255,255,255,0.06);border-radius:50%;"></div>
   <div style="position:absolute;bottom:80px;left:160px;width:280px;height:130px;background:rgba(255,255,255,0.12);border-radius:16px;backdrop-filter:blur(10px);"></div>
   <div style="position:absolute;bottom:80px;left:500px;width:280px;height:130px;background:rgba(255,255,255,0.12);border-radius:16px;backdrop-filter:blur(10px);"></div>
   <div style="position:absolute;bottom:80px;left:840px;width:280px;height:130px;background:rgba(255,255,255,0.12);border-radius:16px;backdrop-filter:blur(10px);"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#f97316,#ec4899,#8b5cf6);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#f97316,#ec4899,#8b5cf6);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:600px;background:rgba(255,255,255,0.06);border-radius:50%;"></div>
   <div style="position:absolute;top:220px;left:0;right:0;text-align:center;font-size:62px;font-weight:900;color:#fff;line-height:1.1;">마케팅 전략 2024</div>
   <div style="position:absolute;top:400px;left:0;right:0;text-align:center;font-size:26px;color:rgba(255,255,255,0.85);">브랜드를 성장시키는 3가지 핵심 전략</div>
@@ -266,13 +269,13 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 680, y: 340, w: 560, h: 50, fontSize: 20, color: '#1e293b', role: 'bullet' },
       { id: 'BULLET_3', x: 680, y: 420, w: 560, h: 50, fontSize: 20, color: '#1e293b', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;width:620px;height:720px;background:linear-gradient(160deg,#1e1b4b,#312e81);"></div>
   <div style="position:absolute;top:0;left:580px;width:6px;height:720px;background:linear-gradient(180deg,#4f46e5,#7c3aed);"></div>
   <div style="position:absolute;bottom:0;left:0;width:620px;height:4px;background:#4f46e5;"></div>
   <div style="position:absolute;right:60px;bottom:60px;width:80px;height:80px;border:3px solid #e2e8f0;border-radius:50%;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;width:620px;height:720px;background:linear-gradient(160deg,#1e1b4b,#312e81);"></div>
   <div style="position:absolute;top:0;left:580px;width:6px;height:720px;background:linear-gradient(180deg,#4f46e5,#7c3aed);"></div>
   <div style="position:absolute;top:90px;left:60px;width:40px;height:4px;background:#4f46e5;"></div>
@@ -298,12 +301,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 480, y: 420, w: 360, h: 180, fontSize: 18, color: '#475569', role: 'bullet' },
       { id: 'BULLET_2', x: 880, y: 420, w: 360, h: 180, fontSize: 18, color: '#475569', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Arial',sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:#6366f1;"></div>
   <div style="position:absolute;top:395px;left:80px;right:80px;height:1px;background:#e2e8f0;"></div>
   <div style="position:absolute;bottom:40px;right:80px;width:120px;height:4px;background:#6366f1;border-radius:2px;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:#6366f1;"></div>
   <div style="position:absolute;top:120px;left:80px;font-size:13px;font-weight:700;color:#6366f1;letter-spacing:3px;text-transform:uppercase;">EDUCATION</div>
   <div style="position:absolute;top:155px;left:80px;font-size:64px;font-weight:900;color:#0f172a;line-height:1.05;max-width:1100px;">학습의 미래를<br>설계하다</div>
@@ -330,7 +333,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 440, y: 540, w: 360, h: 50, fontSize: 19, color: '#cbd5e1', role: 'bullet' },
       { id: 'BULLET_2', x: 840, y: 480, w: 360, h: 50, fontSize: 19, color: '#cbd5e1', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#020617;position:relative;overflow:hidden;font-family:'Courier New',monospace;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#020617;position:relative;overflow:hidden;font-family:'Consolas','Courier New',monospace;">
   <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(34,211,238,0.03) 40px,rgba(34,211,238,0.03) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(34,211,238,0.03) 40px,rgba(34,211,238,0.03) 41px);"></div>
   <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#22d3ee,transparent);"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#22d3ee,transparent);"></div>
@@ -338,7 +341,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   <div style="position:absolute;right:100px;top:200px;width:200px;height:200px;border:1px solid rgba(34,211,238,0.15);border-radius:50%;"></div>
   <div style="position:absolute;right:140px;top:240px;width:120px;height:120px;border:1px solid rgba(34,211,238,0.25);border-radius:50%;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#020617;position:relative;overflow:hidden;font-family:'Courier New',monospace;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#020617;position:relative;overflow:hidden;font-family:'Consolas','Courier New',monospace;">
   <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(34,211,238,0.03) 40px,rgba(34,211,238,0.03) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(34,211,238,0.03) 40px,rgba(34,211,238,0.03) 41px);"></div>
   <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#22d3ee,transparent);"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#22d3ee,transparent);"></div>
@@ -369,13 +372,13 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 80, y: 580, w: 650, h: 44, fontSize: 19, color: '#44403c', role: 'bullet' },
       { id: 'IMAGE', x: 860, y: 190, w: 340, h: 340, fontSize: 0, color: 'transparent', rx: 170, role: 'image' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#fef3c7,#fde68a 40%,#fef3c7);position:relative;overflow:hidden;font-family:Georgia,serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#fef3c7,#fde68a 40%,#fef3c7);position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;right:0;top:0;width:520px;height:720px;background:linear-gradient(160deg,#d97706,#92400e);clip-path:polygon(20% 0, 100% 0, 100% 100%, 0 100%);"></div>
   <div style="position:absolute;right:80px;top:50%;transform:translateY(-50%);width:340px;height:340px;border:3px solid rgba(255,255,255,0.3);border-radius:50%;"></div>
   <div style="position:absolute;right:130px;top:50%;transform:translateY(-50%);width:240px;height:240px;border:2px solid rgba(255,255,255,0.2);border-radius:50%;"></div>
   <div style="position:absolute;left:80px;top:130px;width:6px;height:220px;background:#d97706;border-radius:3px;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#fef3c7,#fde68a 40%,#fef3c7);position:relative;overflow:hidden;font-family:Georgia,serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#fef3c7,#fde68a 40%,#fef3c7);position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;right:0;top:0;width:520px;height:720px;background:linear-gradient(160deg,#d97706,#92400e);clip-path:polygon(20% 0, 100% 0, 100% 100%, 0 100%);"></div>
   <div style="position:absolute;right:80px;top:50%;transform:translateY(-50%);width:340px;height:340px;border:3px solid rgba(255,255,255,0.3);border-radius:50%;"></div>
   <div style="position:absolute;left:80px;top:130px;width:6px;height:220px;background:#d97706;border-radius:3px;"></div>
@@ -402,14 +405,14 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 700, y: 470, w: 280, h: 150, fontSize: 17, color: '#334155', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_3', x: 1020, y: 470, w: 220, h: 150, fontSize: 17, color: '#334155', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#f0f4f8;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#f0f4f8;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:8px;background:linear-gradient(90deg,#1e3a5f,#2563eb);"></div>
   <div style="position:absolute;top:8px;left:0;right:0;height:120px;background:#1e3a5f;"></div>
   <div style="position:absolute;top:140px;left:60px;right:60px;height:1px;background:#cbd5e1;"></div>
   <div style="position:absolute;bottom:60px;left:60px;width:60px;height:60px;border:3px solid #1e3a5f;border-radius:50%;display:flex;align-items:center;justify-content:center;"></div>
   ${[60,380,700,1020].map(x => `<div style="position:absolute;top:440px;left:${x}px;width:${x===1020?220:280}px;height:200px;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.08);border-top:4px solid #2563eb;"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f0f4f8;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f0f4f8;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:8px;background:linear-gradient(90deg,#1e3a5f,#2563eb);"></div>
   <div style="position:absolute;top:8px;left:0;right:0;height:120px;background:#1e3a5f;"></div>
   <div style="position:absolute;top:28px;left:60px;font-size:18px;color:rgba(255,255,255,0.7);letter-spacing:2px;">CORPORATE STRATEGY</div>
@@ -432,12 +435,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'SUMMARY', x: 80, y: 480, w: 900, h: 60, fontSize: 26, color: '#71717a', role: 'summary' },
       { id: 'STAT', x: 1000, y: 200, w: 220, h: 120, fontSize: 80, color: '#4f46e5', fontWeight: 'bold', textAlign: 'center', role: 'stat' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#fafafa;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#fafafa;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:140px;background:#09090b;"></div>
   <div style="position:absolute;top:140px;left:0;right:0;height:6px;background:linear-gradient(90deg,#4f46e5,#7c3aed,#ec4899);"></div>
   <div style="position:absolute;bottom:60px;right:80px;font-size:120px;font-weight:900;color:rgba(79,70,229,0.06);line-height:1;">AI</div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fafafa;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fafafa;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:140px;background:#09090b;display:flex;align-items:center;padding:0 80px;"><span style="color:#fff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">SlideAI</span><span style="margin-left:auto;color:rgba(255,255,255,0.5);font-size:16px;">Seed Round 2024</span></div>
   <div style="position:absolute;top:140px;left:0;right:0;height:6px;background:linear-gradient(90deg,#4f46e5,#7c3aed,#ec4899);"></div>
   <div style="position:absolute;bottom:60px;right:80px;font-size:120px;font-weight:900;color:rgba(79,70,229,0.06);line-height:1;">AI</div>
@@ -463,14 +466,14 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 980, y: 570, w: 200, h: 80, fontSize: 17, color: '#475569', textAlign: 'center', role: 'bullet' },
       { id: 'IMAGE', x: 0, y: 0, w: 500, h: 720, fontSize: 0, color: 'transparent', rx: 0, role: 'image' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;font-family:Georgia,serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:0;left:0;width:500px;height:720px;background:linear-gradient(160deg,#0f172a,#1e293b);"></div>
   <div style="position:absolute;top:0;left:480px;width:4px;height:720px;background:#f59e0b;"></div>
   <div style="position:absolute;top:90px;left:540px;right:40px;height:1px;background:#e2e8f0;"></div>
   <div style="position:absolute;top:540px;left:540px;right:40px;height:1px;background:#e2e8f0;"></div>
   ${[540,760,980].map((x,i) => `<div style="position:absolute;top:545px;left:${x}px;width:200px;height:80px;background:#f8fafc;border-radius:8px;display:flex;align-items:center;justify-content:center;"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;font-family:Georgia,serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:0;left:0;width:500px;height:720px;background:linear-gradient(160deg,#0f172a,#1e293b);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;">
     <div style="font-size:90px;font-weight:900;color:rgba(255,255,255,0.1);line-height:1;">M</div>
     <div style="font-size:16px;color:rgba(255,255,255,0.4);letter-spacing:4px;text-transform:uppercase;">MARKETING</div>
@@ -499,12 +502,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 480, y: 490, w: 320, h: 150, fontSize: 17, color: '#fff', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_2', x: 860, y: 490, w: 320, h: 150, fontSize: 17, color: '#fff', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#667eea,#764ba2);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#667eea,#764ba2);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:-200px;right:-200px;width:600px;height:600px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>
   <div style="position:absolute;bottom:-100px;left:-100px;width:400px;height:400px;background:rgba(255,255,255,0.08);border-radius:50%;"></div>
   ${[100,480,860].map(x => `<div style="position:absolute;top:470px;left:${x}px;width:320px;height:180px;background:rgba(255,255,255,0.12);border-radius:20px;border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(10px);"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#667eea,#764ba2);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(135deg,#667eea,#764ba2);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:-200px;right:-200px;width:600px;height:600px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>
   <div style="position:absolute;bottom:-100px;left:-100px;width:400px;height:400px;background:rgba(255,255,255,0.08);border-radius:50%;"></div>
   <div style="position:absolute;top:190px;left:0;right:0;text-align:center;font-size:60px;font-weight:900;color:#fff;">차세대 SaaS 플랫폼</div>
@@ -527,14 +530,14 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 490, y: 530, w: 300, h: 100, fontSize: 18, color: '#fff', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_2', x: 840, y: 530, w: 300, h: 100, fontSize: 18, color: '#fff', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(180deg,#0f0c29,#302b63,#24243e);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(180deg,#0f0c29,#302b63,#24243e);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;bottom:0;left:0;right:0;height:280px;background:linear-gradient(180deg,transparent,#ff6b6b20);"></div>
   <div style="position:absolute;bottom:50px;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#ff6b6b,#fbbf24,#ff6b6b,transparent);"></div>
   <div style="position:absolute;bottom:80px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,107,107,0.3),transparent);"></div>
   <div style="position:absolute;top:50px;left:50%;transform:translateX(-50%);width:4px;height:100px;background:linear-gradient(180deg,#fbbf24,transparent);"></div>
   ${[140,490,840].map(x => `<div style="position:absolute;top:505px;left:${x}px;width:300px;height:120px;border:1px solid rgba(251,191,36,0.3);border-radius:12px;"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(180deg,#0f0c29,#302b63,#24243e);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(180deg,#0f0c29,#302b63,#24243e);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;bottom:0;left:0;right:0;height:280px;background:linear-gradient(180deg,transparent,rgba(255,107,107,0.1));"></div>
   <div style="position:absolute;bottom:50px;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#ff6b6b,#fbbf24,#ff6b6b,transparent);"></div>
   <div style="position:absolute;top:50px;left:50%;transform:translateX(-50%);width:4px;height:100px;background:linear-gradient(180deg,#fbbf24,transparent);"></div>
@@ -561,7 +564,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_3', x: 460, y: 480, w: 360, h: 60, fontSize: 19, color: '#334155', role: 'bullet' },
       { id: 'SUMMARY', x: 860, y: 240, w: 360, h: 300, fontSize: 17, color: '#64748b', role: 'summary' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:80px;background:#0f172a;"></div>
   <div style="position:absolute;top:80px;left:0;width:400px;height:4px;background:#2563eb;"></div>
   <div style="position:absolute;top:80px;left:0;bottom:0;width:400px;background:rgba(37,99,235,0.04);border-right:1px solid #e2e8f0;"></div>
@@ -569,7 +572,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   <div style="position:absolute;top:80px;left:760px;width:4px;height:640px;background:#e2e8f0;"></div>
   ${[[0,'#2563eb'],[1,'#10b981'],[2,'#f59e0b']].map(([i,c]) => `<div style="position:absolute;top:${500+Number(i)*60}px;left:860px;height:40px;background:${c}20;border-left:4px solid ${c};border-radius:0 8px 8px 0;"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:80px;background:#0f172a;display:flex;align-items:center;padding:0 60px;"><span style="color:#fff;font-size:20px;font-weight:700;">DATA INSIGHTS</span><span style="margin-left:auto;color:rgba(255,255,255,0.5);font-size:14px;">Q4 2024</span></div>
   <div style="position:absolute;top:80px;left:0;width:400px;height:4px;background:#2563eb;"></div>
   <div style="position:absolute;top:84px;left:0;bottom:0;width:400px;background:rgba(37,99,235,0.04);border-right:1px solid #e2e8f0;"></div>
@@ -596,12 +599,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 320, y: 560, w: 200, h: 80, fontSize: 17, color: '#fff', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_2', x: 540, y: 560, w: 200, h: 80, fontSize: 17, color: '#fff', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#09090b;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#09090b;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;right:-100px;top:-100px;width:700px;height:700px;background:conic-gradient(from 0deg,#f97316,#ec4899,#8b5cf6,#06b6d4,#f97316);border-radius:50%;opacity:0.7;filter:blur(60px);"></div>
   <div style="position:absolute;left:0;top:0;right:0;bottom:0;background:linear-gradient(135deg,#09090b 40%,transparent);"></div>
   ${[0,1,2].map(i => `<div style="position:absolute;top:535px;left:${100+i*220}px;width:200px;height:100px;background:rgba(255,255,255,0.08);border-radius:16px;border:1px solid rgba(255,255,255,0.15);"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#09090b;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#09090b;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;right:-100px;top:-100px;width:700px;height:700px;background:conic-gradient(from 0deg,#f97316,#ec4899,#8b5cf6,#06b6d4,#f97316);border-radius:50%;opacity:0.7;filter:blur(60px);"></div>
   <div style="position:absolute;left:0;top:0;right:0;bottom:0;background:linear-gradient(135deg,#09090b 40%,transparent);"></div>
   <div style="position:absolute;top:230px;left:100px;font-size:62px;font-weight:900;color:#fff;line-height:1.1;max-width:700px;">크리에이티브<br>마케팅 전략</div>
@@ -626,7 +629,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 60, y: 552, w: 580, h: 48, fontSize: 18, color: '#334155', role: 'bullet' },
       { id: 'STAT', x: 780, y: 400, w: 460, h: 180, fontSize: 72, color: '#1d4ed8', fontWeight: 'bold', textAlign: 'center', role: 'stat' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;font-family:'Times New Roman',Georgia,serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;font-family:'Cambria','Times New Roman',Georgia,serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:84px;background:#fff;border-bottom:3px double #1d4ed8;"></div>
   <div style="position:absolute;top:330px;left:60px;right:60px;height:1px;background:#cbd5e1;"></div>
   <div style="position:absolute;top:330px;left:720px;width:1px;height:360px;background:#cbd5e1;"></div>
@@ -634,7 +637,7 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
   <div style="position:absolute;bottom:50px;left:0;right:0;height:3px;background:#3b82f6;"></div>
   <div style="position:absolute;top:380px;right:60px;width:420px;height:180px;border:1px solid #e2e8f0;border-radius:8px;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;font-family:Georgia,serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fff;position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:84px;background:#fff;border-bottom:3px double #1d4ed8;display:flex;align-items:center;padding:0 60px;"><span style="font-size:15px;color:#475569;font-style:italic;">Journal of AI Research | Vol. 12, 2024</span><span style="margin-left:auto;font-size:14px;color:#1d4ed8;">DOI: 10.1234/jar.2024</span></div>
   <div style="position:absolute;top:100px;left:60px;font-size:14px;color:#1d4ed8;letter-spacing:1px;font-weight:700;text-transform:uppercase;">Research Presentation</div>
   <div style="position:absolute;top:145px;left:60px;font-size:50px;font-weight:700;color:#0f172a;line-height:1.15;max-width:1100px;">대규모 언어 모델의 교육적 활용 가능성에 관한 연구</div>
@@ -661,13 +664,13 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'STAT_DESC', x: 300, y: 490, w: 400, h: 50, fontSize: 18, color: '#64748b', role: 'stat_desc' },
       { id: 'BULLET_0', x: 80, y: 620, w: 650, h: 44, fontSize: 18, color: '#94a3b8', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#020617;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#020617;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:700px;bottom:0;right:0;background:linear-gradient(135deg,#1e1b4b,#0f0a2e);"></div>
   <div style="position:absolute;top:0;left:700px;width:2px;height:720px;background:linear-gradient(180deg,transparent,#7c3aed,transparent);"></div>
   <div style="position:absolute;top:100px;left:780px;right:40px;bottom:100px;border:1px solid rgba(124,58,237,0.2);border-radius:20px;"></div>
   <div style="position:absolute;top:450px;left:80px;width:540px;height:1px;background:rgba(148,163,184,0.15);"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#020617;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#020617;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:700px;bottom:0;right:0;background:linear-gradient(135deg,#1e1b4b,#0f0a2e);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:40px;"><div style="font-size:14px;color:#7c3aed;letter-spacing:3px;text-transform:uppercase;">SERIES A</div><div style="font-size:36px;font-weight:900;color:#fff;text-align:center;">₩20억<br><span style="font-size:18px;color:#94a3b8;font-weight:400;">목표 투자 유치</span></div><div style="width:80px;height:2px;background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div><div style="font-size:16px;color:#64748b;text-align:center;">2024년 Q2 클로징 예정</div></div>
   <div style="position:absolute;top:0;left:700px;width:2px;height:720px;background:linear-gradient(180deg,transparent,#7c3aed,transparent);"></div>
   <div style="position:absolute;top:130px;left:80px;font-size:56px;font-weight:900;color:#fff;line-height:1.1;max-width:580px;">B2B SaaS<br>플랫폼 구축</div>
@@ -694,12 +697,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 80, y: 500, w: 620, h: 40, fontSize: 18, color: '#3f5347', role: 'bullet' },
       { id: 'BULLET_2', x: 80, y: 550, w: 620, h: 40, fontSize: 18, color: '#3f5347', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#eef5f0,#dcebe1);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#eef5f0,#dcebe1);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;right:-140px;top:-140px;width:520px;height:480px;background:#c7ddc9;border-radius:42% 58% 65% 35%/45% 40% 60% 55%;opacity:0.7;"></div>
   <div style="position:absolute;left:-100px;bottom:-160px;width:420px;height:420px;background:#b7d4bb;border-radius:60% 40% 30% 70%/50% 60% 40% 50%;opacity:0.5;"></div>
   <div style="position:absolute;left:80px;top:140px;width:48px;height:4px;background:#4d7c63;border-radius:2px;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#eef5f0,#dcebe1);position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#eef5f0,#dcebe1);position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;right:-140px;top:-140px;width:520px;height:480px;background:#c7ddc9;border-radius:42% 58% 65% 35%/45% 40% 60% 55%;opacity:0.7;"></div>
   <div style="position:absolute;left:-100px;bottom:-160px;width:420px;height:420px;background:#b7d4bb;border-radius:60% 40% 30% 70%/50% 60% 40% 50%;opacity:0.5;"></div>
   <div style="position:absolute;left:80px;top:140px;width:48px;height:4px;background:#4d7c63;border-radius:2px;"></div>
@@ -721,18 +724,18 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
     tags: ['travel', 'postcard', '여행', '감성'],
     zones: [
       { id: 'LABEL', x: 120, y: 130, w: 400, h: 30, fontSize: 14, color: '#c2410c', fontWeight: 'bold', role: 'label' },
-      { id: 'TITLE', x: 120, y: 170, w: 900, h: 160, fontSize: 62, color: '#1c1917', fontWeight: 'bold', fontFamily: 'Georgia, serif', role: 'title' },
-      { id: 'SUMMARY', x: 120, y: 350, w: 800, h: 50, fontSize: 21, color: '#78716c', fontFamily: 'Georgia, serif', role: 'summary' },
+      { id: 'TITLE', x: 120, y: 170, w: 900, h: 160, fontSize: 62, color: '#1c1917', fontWeight: 'bold', fontFamily: "'Cambria', Georgia, serif", role: 'title' },
+      { id: 'SUMMARY', x: 120, y: 350, w: 800, h: 50, fontSize: 21, color: '#78716c', fontFamily: "'Cambria', Georgia, serif", role: 'summary' },
       { id: 'BULLET_0', x: 120, y: 460, w: 280, h: 100, fontSize: 17, color: '#44403c', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_1', x: 440, y: 460, w: 280, h: 100, fontSize: 17, color: '#44403c', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_2', x: 760, y: 460, w: 280, h: 100, fontSize: 17, color: '#44403c', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#fdf8f0;position:relative;overflow:hidden;font-family:Georgia,serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#fdf8f0;position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:40px;left:40px;right:40px;bottom:40px;border:2px dashed #d6c8ae;border-radius:4px;"></div>
   <div style="position:absolute;top:64px;right:64px;width:90px;height:110px;border:2px solid #c2410c;transform:rotate(6deg);display:flex;align-items:center;justify-content:center;"></div>
   ${[120,440,760].map(x => `<div style="position:absolute;top:450px;left:${x}px;width:280px;height:120px;background:#fff;border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,0.06);"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fdf8f0;position:relative;overflow:hidden;font-family:Georgia,serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fdf8f0;position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:40px;left:40px;right:40px;bottom:40px;border:2px dashed #d6c8ae;border-radius:4px;"></div>
   <div style="position:absolute;top:64px;right:64px;width:90px;height:110px;border:2px solid #c2410c;transform:rotate(6deg);display:flex;align-items:center;justify-content:center;font-size:28px;">✈️</div>
   <div style="position:absolute;left:120px;top:135px;font-size:14px;font-weight:700;color:#c2410c;letter-spacing:3px;text-transform:uppercase;">TRAVEL DIARY</div>
@@ -751,20 +754,20 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
     tags: ['food', 'restaurant', '메뉴', '다이닝'],
     zones: [
       { id: 'LABEL', x: 0, y: 110, w: 1280, h: 30, fontSize: 14, color: '#c9a227', textAlign: 'center', role: 'label' },
-      { id: 'TITLE', x: 140, y: 150, w: 1000, h: 120, fontSize: 54, color: '#f5ede0', fontWeight: 'bold', textAlign: 'center', fontFamily: 'Georgia, serif', role: 'title' },
-      { id: 'SUMMARY', x: 240, y: 280, w: 800, h: 50, fontSize: 19, color: '#c9a227', textAlign: 'center', fontFamily: 'Georgia, serif', role: 'summary' },
+      { id: 'TITLE', x: 140, y: 150, w: 1000, h: 120, fontSize: 54, color: '#f5ede0', fontWeight: 'bold', textAlign: 'center', fontFamily: "'Cambria', Georgia, serif", role: 'title' },
+      { id: 'SUMMARY', x: 240, y: 280, w: 800, h: 50, fontSize: 19, color: '#c9a227', textAlign: 'center', fontFamily: "'Cambria', Georgia, serif", role: 'summary' },
       { id: 'BULLET_0', x: 300, y: 380, w: 680, h: 44, fontSize: 19, color: '#f5ede0', role: 'bullet' },
       { id: 'BULLET_1', x: 300, y: 434, w: 680, h: 44, fontSize: 19, color: '#f5ede0', role: 'bullet' },
       { id: 'BULLET_2', x: 300, y: 488, w: 680, h: 44, fontSize: 19, color: '#f5ede0', role: 'bullet' },
       { id: 'BULLET_3', x: 300, y: 542, w: 680, h: 44, fontSize: 19, color: '#f5ede0', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#1c1512;position:relative;overflow:hidden;font-family:Georgia,serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#1c1512;position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:80px;left:140px;right:140px;height:1px;background:#c9a227;"></div>
   <div style="position:absolute;top:640px;left:140px;right:140px;height:1px;background:#c9a227;"></div>
   <div style="position:absolute;top:60px;left:50%;transform:translateX(-50%);width:8px;height:8px;background:#c9a227;border-radius:50%;"></div>
   <div style="position:absolute;bottom:40px;left:50%;transform:translateX(-50%);width:8px;height:8px;background:#c9a227;border-radius:50%;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#1c1512;position:relative;overflow:hidden;font-family:Georgia,serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#1c1512;position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:80px;left:140px;right:140px;height:1px;background:#c9a227;"></div>
   <div style="position:absolute;top:640px;left:140px;right:140px;height:1px;background:#c9a227;"></div>
   <div style="position:absolute;top:115px;left:0;right:0;text-align:center;font-size:14px;color:#c9a227;letter-spacing:4px;text-transform:uppercase;">FINE DINING</div>
@@ -785,18 +788,18 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
     tags: ['wedding', 'event', '웨딩', '초대장'],
     zones: [
       { id: 'LABEL', x: 0, y: 200, w: 1280, h: 30, fontSize: 15, color: '#a8829a', textAlign: 'center', role: 'label' },
-      { id: 'TITLE', x: 190, y: 250, w: 900, h: 140, fontSize: 56, color: '#4a3b45', fontWeight: 'bold', textAlign: 'center', fontFamily: 'Georgia, serif', role: 'title' },
-      { id: 'SUMMARY', x: 240, y: 400, w: 800, h: 50, fontSize: 20, color: '#8a7480', textAlign: 'center', fontFamily: 'Georgia, serif', role: 'summary' },
+      { id: 'TITLE', x: 190, y: 250, w: 900, h: 140, fontSize: 56, color: '#4a3b45', fontWeight: 'bold', textAlign: 'center', fontFamily: "'Cambria', Georgia, serif", role: 'title' },
+      { id: 'SUMMARY', x: 240, y: 400, w: 800, h: 50, fontSize: 20, color: '#8a7480', textAlign: 'center', fontFamily: "'Cambria', Georgia, serif", role: 'summary' },
       { id: 'BULLET_0', x: 340, y: 490, w: 600, h: 36, fontSize: 17, color: '#6b5862', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_1', x: 340, y: 526, w: 600, h: 36, fontSize: 17, color: '#6b5862', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(180deg,#fdf2f6,#faf7f2);position:relative;overflow:hidden;font-family:Georgia,serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(180deg,#fdf2f6,#faf7f2);position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:60px;left:60px;right:60px;bottom:60px;border:1px solid #e3b8cd;"></div>
   <div style="position:absolute;top:74px;left:74px;right:74px;bottom:74px;border:1px solid #e3b8cd;"></div>
   <div style="position:absolute;top:190px;left:50%;transform:translateX(-50%);width:60px;height:1px;background:#c98fac;"></div>
   <div style="position:absolute;top:186px;left:50%;transform:translateX(-50%) rotate(45deg);width:8px;height:8px;background:#c98fac;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(180deg,#fdf2f6,#faf7f2);position:relative;overflow:hidden;font-family:Georgia,serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(180deg,#fdf2f6,#faf7f2);position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:60px;left:60px;right:60px;bottom:60px;border:1px solid #e3b8cd;"></div>
   <div style="position:absolute;top:74px;left:74px;right:74px;bottom:74px;border:1px solid #e3b8cd;"></div>
   <div style="position:absolute;top:190px;left:50%;transform:translateX(-50%);width:60px;height:1px;background:#c98fac;"></div>
@@ -824,13 +827,13 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_0', x: 70, y: 600, w: 560, h: 34, fontSize: 16, color: '#b8b2a5', role: 'bullet' },
       { id: 'IMAGE', x: 840, y: 80, w: 360, h: 280, fontSize: 0, color: 'transparent', rx: 4, role: 'image' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#151310;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#151310;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;right:0;bottom:0;width:520px;background:linear-gradient(160deg,#2b2620,#151310);"></div>
   <div style="position:absolute;top:0;right:520px;width:2px;height:720px;background:#c9a961;"></div>
   <div style="position:absolute;right:80px;top:80px;width:360px;height:280px;border:1px solid rgba(201,169,97,0.35);"></div>
   <div style="position:absolute;right:110px;top:400px;width:300px;height:220px;border:1px solid rgba(201,169,97,0.2);"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#151310;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#151310;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;right:0;bottom:0;width:520px;background:linear-gradient(160deg,#2b2620,#151310);display:flex;align-items:center;justify-content:center;"><div style="font-size:70px;">🏛️</div></div>
   <div style="position:absolute;top:0;right:520px;width:2px;height:720px;background:#c9a961;"></div>
   <div style="position:absolute;left:70px;top:115px;font-size:14px;font-weight:700;color:#c9a961;letter-spacing:3px;">PREMIUM LISTING</div>
@@ -858,12 +861,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 60, y: 540, w: 460, h: 44, fontSize: 18, color: '#334a3f', role: 'bullet' },
       { id: 'SUMMARY', x: 640, y: 210, w: 580, h: 350, fontSize: 17, color: '#4b5f56', role: 'summary' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#f4f9f6;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#f4f9f6;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#0d9256,#22c55e);"></div>
   <div style="position:absolute;bottom:0;left:600px;right:0;top:0;background:#fff;border-left:1px solid #dbe7e0;"></div>
   ${[0,1,2,3,4].map(i => `<div style="position:absolute;bottom:120px;left:${680+i*100}px;width:56px;height:${40+i*36}px;background:#0d9256;opacity:${0.35+i*0.13};border-radius:4px 4px 0 0;"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f4f9f6;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f4f9f6;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#0d9256,#22c55e);"></div>
   <div style="position:absolute;bottom:0;left:600px;right:0;top:0;background:#fff;border-left:1px solid #dbe7e0;"></div>
   <div style="position:absolute;left:60px;top:95px;font-size:40px;font-weight:800;color:#0f2e1f;">2024 투자 실적 리포트</div>
@@ -889,12 +892,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_0', x: 900, y: 520, w: 300, h: 34, fontSize: 15, color: '#000000', textAlign: 'right', role: 'bullet' },
       { id: 'BULLET_1', x: 900, y: 554, w: 300, h: 34, fontSize: 15, color: '#000000', textAlign: 'right', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Helvetica Neue',Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Helvetica Neue',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:640px;width:1px;height:720px;background:#000;"></div>
   <div style="position:absolute;top:60px;left:80px;right:80px;height:1px;background:#000;"></div>
   <div style="position:absolute;bottom:60px;left:80px;right:80px;height:1px;background:#000;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Helvetica Neue',Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Helvetica Neue',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:640px;width:1px;height:720px;background:#000;"></div>
   <div style="position:absolute;top:60px;left:80px;right:80px;height:1px;background:#000;"></div>
   <div style="position:absolute;bottom:60px;left:80px;right:80px;height:1px;background:#000;"></div>
@@ -919,14 +922,14 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_0', x: 400, y: 470, w: 400, h: 44, fontSize: 19, color: '#c9fbe5', role: 'bullet' },
       { id: 'BULLET_1', x: 400, y: 520, w: 400, h: 44, fontSize: 19, color: '#c9fbe5', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#0a0a12;position:relative;overflow:hidden;font-family:'Courier New',monospace;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#0a0a12;position:relative;overflow:hidden;font-family:'Consolas','Courier New',monospace;">
   <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 30px,rgba(255,46,166,0.03) 30px,rgba(255,46,166,0.03) 31px);"></div>
   <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ff2ea6,#7c3aed,#22d3ee);"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#22d3ee,#7c3aed,#ff2ea6);"></div>
   <div style="position:absolute;left:80px;top:160px;width:50px;height:4px;background:#7cf5c4;box-shadow:0 0 10px #7cf5c4;"></div>
   <div style="position:absolute;right:100px;top:150px;width:160px;height:160px;border:2px solid rgba(255,46,166,0.3);transform:rotate(15deg);"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#0a0a12;position:relative;overflow:hidden;font-family:'Courier New',monospace;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#0a0a12;position:relative;overflow:hidden;font-family:'Consolas','Courier New',monospace;">
   <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 30px,rgba(255,46,166,0.03) 30px,rgba(255,46,166,0.03) 31px);"></div>
   <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ff2ea6,#7c3aed,#22d3ee);"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#22d3ee,#7c3aed,#ff2ea6);"></div>
@@ -956,12 +959,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 400, y: 440, w: 300, h: 100, fontSize: 17, color: '#57534e', role: 'bullet' },
       { id: 'BULLET_2', x: 720, y: 440, w: 300, h: 100, fontSize: 17, color: '#57534e', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#fdf6ec;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#fdf6ec;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;right:-80px;top:-80px;width:340px;height:340px;border:32px solid #f3dfc1;border-radius:50%;"></div>
   <div style="position:absolute;top:80px;left:80px;width:44px;height:4px;background:#b45309;border-radius:2px;"></div>
   <div style="position:absolute;top:410px;left:80px;right:80px;height:1px;background:#e7dac3;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fdf6ec;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fdf6ec;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;right:-80px;top:-80px;width:340px;height:340px;border:32px solid #f3dfc1;border-radius:50%;"></div>
   <div style="position:absolute;left:80px;top:115px;font-size:14px;font-weight:700;color:#b45309;letter-spacing:2px;">2024 IMPACT REPORT</div>
   <div style="position:absolute;left:80px;top:155px;font-size:46px;font-weight:800;color:#1c1917;line-height:1.2;max-width:680px;">함께 만든 변화의 기록</div>
@@ -987,12 +990,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 760, y: 514, w: 440, h: 34, fontSize: 15, color: '#71717a', role: 'bullet' },
       { id: 'IMAGE', x: 0, y: 0, w: 720, h: 720, fontSize: 0, color: 'transparent', rx: 0, role: 'image' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#18181b;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#18181b;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;width:720px;height:720px;background:linear-gradient(135deg,#3f3f46,#27272a);"></div>
   <div style="position:absolute;top:0;left:720px;width:2px;height:720px;background:#52525b;"></div>
   <div style="position:absolute;top:600px;left:40px;width:60px;height:60px;border:1px solid rgba(255,255,255,0.15);border-radius:50%;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#18181b;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#18181b;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;width:720px;height:720px;background:linear-gradient(135deg,#3f3f46,#27272a);display:flex;align-items:center;justify-content:center;"><div style="font-size:100px;opacity:0.3;">📷</div></div>
   <div style="position:absolute;top:0;left:720px;width:2px;height:720px;background:#52525b;"></div>
   <div style="position:absolute;left:760px;top:130px;font-size:13px;color:#a1a1aa;letter-spacing:3px;text-transform:uppercase;">SELECTED WORK</div>
@@ -1018,14 +1021,14 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 660, y: 400, w: 260, h: 140, fontSize: 17, color: '#334155', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_3', x: 960, y: 400, w: 260, h: 140, fontSize: 17, color: '#334155', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:#4f46e5;"></div>
   <div style="position:absolute;top:470px;left:190px;width:170px;height:2px;background:#c7d2fe;"></div>
   <div style="position:absolute;top:470px;left:490px;width:170px;height:2px;background:#c7d2fe;"></div>
   <div style="position:absolute;top:470px;left:790px;width:170px;height:2px;background:#c7d2fe;"></div>
   ${[60,360,660,960].map(x => `<div style="position:absolute;top:390px;left:${x}px;width:260px;height:170px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;border-top:4px solid #4f46e5;"></div><div style="position:absolute;top:405px;left:${x+18}px;width:36px;height:36px;background:#4f46e5;border-radius:50%;"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:#4f46e5;"></div>
   <div style="position:absolute;left:60px;top:95px;font-size:42px;font-weight:800;color:#1e293b;">제품 개발 프로세스</div>
   <div style="position:absolute;left:60px;top:195px;font-size:19px;color:#64748b;">아이디어부터 출시까지 4단계 워크플로우</div>
@@ -1051,12 +1054,12 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 700, y: 420, w: 220, h: 120, fontSize: 16, color: '#334155', role: 'bullet' },
       { id: 'BULLET_3', x: 1000, y: 420, w: 220, h: 120, fontSize: 16, color: '#334155', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:#0ea5e9;"></div>
   <div style="position:absolute;top:390px;left:100px;right:100px;height:3px;background:#cbd5e1;border-radius:2px;"></div>
   ${[100,400,700,1000].map(x => `<div style="position:absolute;top:382px;left:${x+10}px;width:20px;height:20px;background:#fff;border:4px solid #0ea5e9;border-radius:50%;"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#f8fafc;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:#0ea5e9;"></div>
   <div style="position:absolute;left:60px;top:85px;font-size:40px;font-weight:800;color:#0f172a;">우리의 성장 여정</div>
   <div style="position:absolute;left:60px;top:180px;font-size:18px;color:#64748b;">2021년부터 이어온 주요 마일스톤</div>
@@ -1080,13 +1083,13 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 140, y: 364, w: 420, h: 44, fontSize: 18, color: '#334155', role: 'bullet' },
       { id: 'SUMMARY', x: 720, y: 260, w: 420, h: 200, fontSize: 18, color: '#334155', role: 'summary' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:#0f172a;"></div>
   <div style="position:absolute;top:170px;left:140px;right:140px;bottom:100px;background:#f8fafc;border-radius:16px;"></div>
   <div style="position:absolute;top:170px;left:640px;width:1px;bottom:100px;background:#e2e8f0;"></div>
   <div style="position:absolute;top:50%;left:640px;transform:translate(-50%,-50%);width:64px;height:64px;background:#0f172a;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#ffffff;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:#0f172a;"></div>
   <div style="position:absolute;top:170px;left:140px;right:140px;bottom:100px;background:#f8fafc;border-radius:16px;"></div>
   <div style="position:absolute;top:170px;left:640px;width:1px;bottom:100px;background:#e2e8f0;"></div>
@@ -1114,11 +1117,11 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_2', x: 700, y: 500, w: 220, h: 80, fontSize: 16, color: '#334155', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_3', x: 1000, y: 500, w: 220, h: 80, fontSize: 16, color: '#334155', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#fefefe;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#fefefe;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#f97316,#ec4899);"></div>
   ${[100,400,700,1000].map(x => `<div style="position:absolute;top:280px;left:${x}px;width:220px;height:180px;background:#fff;border:1px solid #f1f5f9;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,0.05);"></div><div style="position:absolute;top:300px;left:${x+70}px;width:80px;height:80px;background:linear-gradient(135deg,#f97316,#ec4899);border-radius:50%;"></div>`).join('')}
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fefefe;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fefefe;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#f97316,#ec4899);"></div>
   <div style="position:absolute;left:60px;top:85px;font-size:38px;font-weight:800;color:#0f172a;">우리 팀을 소개합니다</div>
   <div style="position:absolute;left:60px;top:170px;font-size:18px;color:#64748b;">각자의 전문성으로 함께 만들어가는 팀</div>
@@ -1134,15 +1137,15 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
     category: '마케팅',
     tags: ['quote', '인용구', '고객후기'],
     zones: [
-      { id: 'QUOTE', x: 180, y: 240, w: 920, h: 220, fontSize: 40, color: '#ffffff', fontWeight: 'bold', textAlign: 'center', fontFamily: 'Georgia, serif', role: 'quote' },
+      { id: 'QUOTE', x: 180, y: 240, w: 920, h: 220, fontSize: 40, color: '#ffffff', fontWeight: 'bold', textAlign: 'center', fontFamily: "'Cambria', Georgia, serif", role: 'quote' },
       { id: 'LABEL', x: 340, y: 500, w: 600, h: 40, fontSize: 18, color: '#a5b4fc', textAlign: 'center', role: 'label' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#1e1b4b,#312e81);position:relative;overflow:hidden;font-family:Georgia,serif;">
-  <div style="position:absolute;top:120px;left:160px;font-size:140px;color:rgba(255,255,255,0.12);font-family:Georgia,serif;">"</div>
-  <div style="position:absolute;bottom:100px;right:180px;font-size:140px;color:rgba(255,255,255,0.12);font-family:Georgia,serif;transform:rotate(180deg);">"</div>
+    backgroundHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#1e1b4b,#312e81);position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
+  <div style="position:absolute;top:120px;left:160px;font-size:140px;color:rgba(255,255,255,0.12);font-family:'Cambria',Georgia,serif;">"</div>
+  <div style="position:absolute;bottom:100px;right:180px;font-size:140px;color:rgba(255,255,255,0.12);font-family:'Cambria',Georgia,serif;transform:rotate(180deg);">"</div>
   <div style="position:absolute;top:490px;left:50%;transform:translateX(-50%);width:60px;height:3px;background:#818cf8;border-radius:2px;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#1e1b4b,#312e81);position:relative;overflow:hidden;font-family:Georgia,serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:linear-gradient(160deg,#1e1b4b,#312e81);position:relative;overflow:hidden;font-family:'Cambria',Georgia,serif;">
   <div style="position:absolute;top:120px;left:160px;font-size:140px;color:rgba(255,255,255,0.12);">"</div>
   <div style="position:absolute;bottom:100px;right:180px;font-size:140px;color:rgba(255,255,255,0.12);transform:rotate(180deg);">"</div>
   <div style="position:absolute;top:250px;left:180px;right:180px;text-align:center;font-size:40px;font-weight:700;color:#fff;line-height:1.4;">"이 제품 덕분에 우리 팀의 생산성이<br>세 배 이상 향상되었습니다"</div>
@@ -1165,14 +1168,14 @@ export const HTML_TEMPLATES: HtmlTemplate[] = [
       { id: 'BULLET_1', x: 390, y: 490, w: 260, h: 90, fontSize: 16, color: '#3f3f46', textAlign: 'center', role: 'bullet' },
       { id: 'BULLET_2', x: 680, y: 490, w: 260, h: 90, fontSize: 16, color: '#3f3f46', textAlign: 'center', role: 'bullet' },
     ],
-    backgroundHtml: `<div style="width:1280px;height:720px;background:#fef9f0;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    backgroundHtml: `<div style="width:1280px;height:720px;background:#fef9f0;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:60px;right:120px;width:0;height:0;border-left:60px solid transparent;border-right:60px solid transparent;border-bottom:100px solid #a7f3d0;"></div>
   <div style="position:absolute;top:220px;right:60px;width:90px;height:90px;background:#fbcfe8;border-radius:50%;"></div>
   <div style="position:absolute;bottom:80px;right:200px;width:70px;height:70px;background:#93c5fd;transform:rotate(20deg);border-radius:12px;"></div>
   <div style="position:absolute;bottom:120px;right:340px;width:0;height:0;border-left:30px solid transparent;border-right:30px solid transparent;border-bottom:50px solid #fde68a;"></div>
   <div style="position:absolute;top:150px;left:100px;width:40px;height:6px;background:#27272a;border-radius:3px;"></div>
 </div>`,
-    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fef9f0;position:relative;overflow:hidden;font-family:Arial,sans-serif;">
+    thumbnailHtml: `<div style="width:1280px;height:720px;background:#fef9f0;position:relative;overflow:hidden;font-family:'Pretendard Variable','Calibri','Segoe UI',Arial,sans-serif;">
   <div style="position:absolute;top:60px;right:120px;width:0;height:0;border-left:60px solid transparent;border-right:60px solid transparent;border-bottom:100px solid #a7f3d0;"></div>
   <div style="position:absolute;top:220px;right:60px;width:90px;height:90px;background:#fbcfe8;border-radius:50%;"></div>
   <div style="position:absolute;bottom:80px;right:200px;width:70px;height:70px;background:#93c5fd;transform:rotate(20deg);border-radius:12px;"></div>

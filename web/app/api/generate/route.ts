@@ -47,11 +47,13 @@ Slide type rules:
 
 image_prompt rules:
 - ALWAYS include image_prompt for every slide
-- 5-10 words in English describing ideal background or illustration
-- For section_header: vivid scene (e.g. "futuristic city skyline purple sunset")
-- For image_text: concrete visual (e.g. "scientist analyzing DNA helix laboratory")
-- For others: abstract professional context (e.g. "data visualization charts blue gradient")
-- Style: professional, clean, vector art, flat design
+- 2-5 words in English naming a real, photographable subject — this is a
+  stock-photo SEARCH query, not an illustration style description
+- For section_header: a vivid real scene (e.g. "city skyline sunset")
+- For image_text: a concrete real subject (e.g. "scientist laboratory research")
+- For others: a real professional/business scene (e.g. "team meeting office")
+- Do NOT include style words like "flat design", "vector art", "illustration",
+  "clean" — those describe illustrations, not searchable photographs
 
 Use diverse slide types. Recommended distribution for a 7-slide deck:
 1x section_header, 2x title_and_content, 1x big_stat or three_cards, 1x timeline or comparison, 1x quote_slide or image_text
@@ -63,6 +65,38 @@ deck_style: pick exactly ONE visual family for the whole deck, based on the topi
 - "luxury-editorial": dark+gold or stark black & white, premium — fashion, real estate, high-end brands
 
 Make content professional, concise, and impactful.`
+
+// Real Unsplash photos instead of AI-generated illustrations. Falls back to
+// the free Pollinations illustration API per-slide if Unsplash has no key,
+// no results, or hits its rate limit (50 req/hr on the free Demo tier) — a
+// deck should never fail to generate just because image search had a bad day.
+async function resolveImageUrl(imagePrompt: string, seed: number): Promise<string> {
+  const fallback = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt + ', professional presentation, flat design, clean')}&width=800&height=500&nologo=true&seed=${seed}`
+  const accessKey = process.env.UNSPLASH_ACCESS_KEY
+  if (!accessKey) return fallback
+
+  try {
+    const res = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(imagePrompt)}&per_page=1&orientation=landscape`,
+      { headers: { Authorization: `Client-ID ${accessKey}` } },
+    )
+    if (!res.ok) return fallback
+    const json = await res.json()
+    const photo = json.results?.[0]
+    if (!photo) return fallback
+
+    // Unsplash API guidelines require pinging this endpoint whenever a photo
+    // obtained via the API is actually used — fire-and-forget, doesn't block
+    // the response.
+    if (photo.links?.download_location) {
+      fetch(`${photo.links.download_location}&client_id=${accessKey}`).catch(() => {})
+    }
+
+    return `${photo.urls.regular}&w=800&h=500&fit=crop`
+  } catch {
+    return fallback
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -103,13 +137,20 @@ Start with a title_and_content or section_header slide.`
       : TEMPLATE_FAMILIES[Math.floor(Math.random() * TEMPLATE_FAMILIES.length)]
     data.deck_style = deckStyle
 
-    // Normalize slides + attach AI image URLs via Pollinations.ai (free, no API key)
-    const usedTemplateIds = new Set<string>()
-    data.slides = (data.slides || []).map((s: Record<string, unknown>, i: number) => {
+    // Resolve real Unsplash photos concurrently first (network-bound) — kept
+    // separate from template assignment below, which must stay a strictly
+    // sequential pass so autoAssignTemplate's "avoid repeats" logic sees each
+    // prior slide's pick before scoring the next one.
+    const rawSlides: Record<string, unknown>[] = data.slides || []
+    const imageUrls = await Promise.all(rawSlides.map((s, i) => {
       const imagePrompt = (s.image_prompt as string | undefined)?.trim() || ''
-      const imageUrl = imagePrompt
-        ? `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt + ', professional presentation, flat design, clean')}&width=800&height=500&nologo=true&seed=${i + 1}`
-        : undefined
+      return imagePrompt ? resolveImageUrl(imagePrompt, i + 1) : Promise.resolve(undefined)
+    }))
+
+    const usedTemplateIds = new Set<string>()
+    data.slides = rawSlides.map((s, i) => {
+      const imagePrompt = (s.image_prompt as string | undefined)?.trim() || ''
+      const imageUrl = imageUrls[i]
       const slideType = (s.slide_type as string) || 'title_and_content'
       const bullets = Array.isArray(s.bullets) ? s.bullets : []
       const templateId = autoAssignTemplate(slideType, i, { bullets, stat_value: s.stat_value as string | undefined, imageUrl }, usedTemplateIds, deckStyle)

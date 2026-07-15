@@ -148,11 +148,32 @@ export default function FabricCanvas({
         pendingDisposeRef.current = null
       }
       if (cancelled) return
+      // Canvas 2D text (unlike DOM text) doesn't wait for @font-face to finish
+      // loading — fillText() with an unloaded font silently draws a fallback
+      // instead of triggering/awaiting the fetch. Force the load explicitly
+      // before any Textbox is created, or the first paint (and any snapshot
+      // taken from it) can bake in the wrong font.
+      if (typeof document !== 'undefined' && document.fonts) {
+        try {
+          await Promise.all([
+            document.fonts.load("400 16px 'Pretendard Variable'"),
+            document.fonts.load("700 16px 'Pretendard Variable'"),
+          ])
+        } catch { /* font failed to load — falls back to the next font in the stack */ }
+      }
+      if (cancelled) return
       const { Canvas, Rect, Circle, Triangle, Line, Textbox, Path, FabricImage, ActiveSelection } = fab
 
       const htmlTemplate = slide.templateId
         ? HTML_TEMPLATES.find(t => t.id === slide.templateId) ?? null
         : null
+      // Zones rarely set their own fontFamily, so this fallback is what most
+      // rendered text actually uses. Plain 'Arial' reads as cheap/default —
+      // derive an elevated fallback from the template's own declared
+      // serif/sans intent instead of a single flat font for every template.
+      const defaultFontFamily = htmlTemplate?.backgroundHtml.includes('Georgia')
+        ? "'Cambria', Georgia, serif"
+        : "'Pretendard Variable', 'Calibri', 'Segoe UI', Arial, sans-serif"
 
       canvas = new Canvas(el, {
         width: CANVAS_W,
@@ -218,7 +239,7 @@ export default function FabricCanvas({
               fill: zone.color,
               fontWeight: zone.fontWeight || 'normal',
               textAlign: zone.textAlign || 'left',
-              fontFamily: zone.fontFamily || 'Arial, sans-serif',
+              fontFamily: zone.fontFamily || defaultFontFamily,
               lineHeight: 1.2,
               data: { role: zone.role, zoneId: zone.id },
             } as any)
@@ -267,7 +288,7 @@ export default function FabricCanvas({
         const shapeOpts = { fill: accentColor + '33', stroke: accentColor, strokeWidth: 2 }
 
         if (tool === 'text') {
-          obj = new Textbox('텍스트', { left: ptr.x - 100, top: ptr.y - 20, width: 200, fontSize: 28, fill: '#1e293b', fontFamily: 'Arial, sans-serif' })
+          obj = new Textbox('텍스트', { left: ptr.x - 100, top: ptr.y - 20, width: 200, fontSize: 28, fill: '#1e293b', fontFamily: "'Pretendard Variable', 'Calibri', 'Segoe UI', Arial, sans-serif" })
         } else if (tool === 'rect') {
           obj = new Rect({ left: ptr.x - 80, top: ptr.y - 50, width: 160, height: 100, ...shapeOpts })
         } else if (tool === 'circle') {

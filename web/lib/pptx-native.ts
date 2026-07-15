@@ -43,8 +43,16 @@ export function parseColor(input?: string): { color: string; transparency: numbe
   return { color: '000000', transparency: 0 }
 }
 
+// Web fonts we load via @font-face for on-screen/browser rendering but that
+// aren't installed on a typical Windows/PowerPoint machine and pptxgenjs
+// can't embed — using them as the exported font name just shows as "missing
+// font" in PowerPoint. Skip to the next (real, system-installed) font in the
+// stack instead.
+const WEB_ONLY_FONTS = new Set(['Pretendard Variable', 'Pretendard'])
+
 function fontFace(fontFamily?: string): string {
-  return (fontFamily || 'Arial').split(',')[0].replace(/['"]/g, '').trim() || 'Arial'
+  const candidates = (fontFamily || 'Arial').split(',').map(f => f.replace(/['"]/g, '').trim()).filter(Boolean)
+  return candidates.find(f => !WEB_ONLY_FONTS.has(f)) || 'Arial'
 }
 
 function hAlign(align?: string): 'left' | 'center' | 'right' {
